@@ -57,10 +57,9 @@ namespace Squidex.Domain.Apps.Read.Contents.ComplexQueries
                 cts.SetResult(JsonMapper.Map(result));
             }));
 
-            engine.Execute(scripts + Environment.NewLine + Environment.NewLine + function);
-
             try
             {
+                engine.Execute(scripts + Environment.NewLine + Environment.NewLine + function);
             }
             catch (Exception ex)
             {
