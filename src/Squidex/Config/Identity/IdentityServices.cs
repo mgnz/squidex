@@ -111,6 +111,17 @@ namespace Squidex.Config.Identity
             return services;
         }
 
+        public static IServiceCollection AddMyAuthentication(this IServiceCollection services, IConfiguration configuration)
+        {
+            var options = configuration.GetValue<MyIdentityOptions>("identity");
+
+            services.AddAuthentication()
+                .AddMyGoogleAuthentication(options)
+                .AddMyMicrosoftAuthentication(options);
+
+            return services;
+        }
+
         public static IServiceCollection AddMyIdentity(this IServiceCollection services)
         {
             services.AddIdentity<IUser, IRole>().AddDefaultTokenProviders();
