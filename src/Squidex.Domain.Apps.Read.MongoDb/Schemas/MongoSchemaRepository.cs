@@ -11,8 +11,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 using Squidex.Domain.Apps.Core.Schemas;
-using Squidex.Domain.Apps.Core.Schemas.Json;
 using Squidex.Domain.Apps.Read.Schemas;
 using Squidex.Domain.Apps.Read.Schemas.Repositories;
 using Squidex.Infrastructure;
@@ -23,18 +23,18 @@ namespace Squidex.Domain.Apps.Read.MongoDb.Schemas
 {
     public partial class MongoSchemaRepository : MongoRepositoryBase<MongoSchemaEntity>, ISchemaRepository, IEventConsumer
     {
-        private readonly SchemaJsonSerializer serializer;
+        private readonly JsonSerializerSettings serializerSettings;
         private readonly FieldRegistry registry;
 
-        public MongoSchemaRepository(IMongoDatabase database, SchemaJsonSerializer serializer, FieldRegistry registry)
+        public MongoSchemaRepository(IMongoDatabase database, JsonSerializerSettings serializerSettings, FieldRegistry registry)
             : base(database)
         {
             Guard.NotNull(registry, nameof(registry));
-            Guard.NotNull(serializer, nameof(serializer));
+            Guard.NotNull(serializerSettings, nameof(serializerSettings));
 
             this.registry = registry;
 
-            this.serializer = serializer;
+            this.serializerSettings = serializerSettings;
         }
 
         protected override string CollectionName()
@@ -55,7 +55,7 @@ namespace Squidex.Domain.Apps.Read.MongoDb.Schemas
                 await Collection.Find(s => s.AppId == appId && !s.IsDeleted)
                     .ToListAsync();
 
-            schemaEntities.ForEach(x => x.DeserializeSchema(serializer));
+            schemaEntities.ForEach(x => x.DeserializeSchema(serializerSettings));
 
             return schemaEntities.OfType<ISchemaEntity>().ToList();
         }
@@ -66,7 +66,7 @@ namespace Squidex.Domain.Apps.Read.MongoDb.Schemas
                 await Collection.Find(s => s.AppId == appId && !s.IsDeleted && s.Name == name)
                     .FirstOrDefaultAsync();
 
-            schemaEntity?.DeserializeSchema(serializer);
+            schemaEntity?.DeserializeSchema(serializerSettings);
 
             return schemaEntity;
         }
@@ -77,7 +77,7 @@ namespace Squidex.Domain.Apps.Read.MongoDb.Schemas
                 await Collection.Find(s => s.Id == schemaId)
                     .FirstOrDefaultAsync();
 
-            schemaEntity?.DeserializeSchema(serializer);
+            schemaEntity?.DeserializeSchema(serializerSettings);
 
             return schemaEntity;
         }

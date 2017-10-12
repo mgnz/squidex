@@ -39,7 +39,7 @@ namespace Squidex.Domain.Apps.Read.Contents
         private static readonly Guid appId = Guid.NewGuid();
 
         private readonly Schema schemaDef =
-            Schema.Create("my-schema", new SchemaProperties())
+            Schema.Create(Guid.NewGuid(), "my-schema")
                 .AddOrUpdateField(new JsonField(1, "my-json", Partitioning.Invariant,
                     new JsonFieldProperties()))
                 .AddOrUpdateField(new StringField(2, "my-string", Partitioning.Language,

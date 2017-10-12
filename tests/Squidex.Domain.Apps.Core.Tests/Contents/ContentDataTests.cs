@@ -21,7 +21,7 @@ namespace Squidex.Domain.Apps.Core.Contents
     public class ContentDataTests
     {
         private readonly Schema schema =
-            Schema.Create("schema", new SchemaProperties())
+            Schema.Create(Guid.NewGuid(), "schema")
                 .AddOrUpdateField(new NumberField(1, "field1", Partitioning.Language))
                 .AddOrUpdateField(new NumberField(2, "field2", Partitioning.Invariant))
                 .AddOrUpdateField(new NumberField(3, "field3", Partitioning.Invariant).Hide())

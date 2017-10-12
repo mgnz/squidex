@@ -22,27 +22,21 @@ namespace Squidex.Domain.Apps.Write.Apps
 {
     public class AppDomainObject : DomainObjectBase
     {
-        private static readonly Language DefaultLanguage = Language.EN;
-        private readonly AppContributors contributors = new AppContributors();
-        private readonly AppClients clients = new AppClients();
-        private LanguagesConfig languagesConfig = LanguagesConfig.Empty;
-        private string name;
-        private string planId;
-        private RefToken planOwner;
+        private App app;
 
         public string Name
         {
-            get { return name; }
+            get { return app.Name; }
         }
 
         public string PlanId
         {
-            get { return planId; }
+            get { return app.PlanId; }
         }
 
         public int ContributorCount
         {
-            get { return contributors.Count; }
+            get { return app.Contributors.Count; }
         }
 
         public AppDomainObject(Guid id, int version)
@@ -52,59 +46,57 @@ namespace Squidex.Domain.Apps.Write.Apps
 
         protected void On(AppCreated @event)
         {
-            name = @event.Name;
+            app = App.Create(Id, @event.Name);
         }
 
         protected void On(AppContributorAssigned @event)
         {
-            contributors.Assign(@event.ContributorId, @event.Permission);
+            app = app.UpdateContributors(c => c.Assign(@event.ContributorId, @event.Permission));
         }
 
         protected void On(AppContributorRemoved @event)
         {
-            contributors.Remove(@event.ContributorId);
+            app = app.UpdateContributors(c => c.Remove(@event.ContributorId));
         }
 
         protected void On(AppClientAttached @event)
         {
-            clients.Add(@event.Id, @event.Secret);
+            app = app.UpdateClients(c => c.Add(@event.Id, @event.Secret));
         }
 
         protected void On(AppClientUpdated @event)
         {
-            clients.Update(@event.Id, @event.Permission);
+            app = app.UpdateClients(c => c.Update(@event.Id, @event.Permission));
         }
 
         protected void On(AppClientRenamed @event)
         {
-            clients.Rename(@event.Id, @event.Name);
+            app = app.UpdateClients(c => c.Rename(@event.Id, @event.Name));
         }
 
         protected void On(AppClientRevoked @event)
         {
-            clients.Revoke(@event.Id);
+            app = app.UpdateClients(c => c.Revoke(@event.Id));
         }
 
         protected void On(AppLanguageAdded @event)
         {
-            languagesConfig = languagesConfig.Add(@event.Language);
+            app = app.UpdateLanguages(c => c.Add(@event.Language));
         }
 
         protected void On(AppLanguageRemoved @event)
         {
-            languagesConfig = languagesConfig.Remove(@event.Language);
+            app = app.UpdateLanguages(c => c.Remove(@event.Language));
         }
 
         protected void On(AppLanguageUpdated @event)
         {
-            languagesConfig = languagesConfig.Update(@event.Language, @event.IsOptional, @event.IsMaster, @event.Fallback);
+            app = app.UpdateLanguages(c => c.Update(@event.Language, @event.IsOptional, @event.IsMaster, @event.Fallback));
         }
 
         protected void On(AppPlanChanged @event)
         {
-            planId = @event.PlanId;
-
-            planOwner = string.IsNullOrWhiteSpace(planId) ? null : @event.Actor;
+            app = app.ChangePlan(@event.PlanId, @event.Actor);
         }
 
         protected override void DispatchEvent(Envelope<IEvent> @event)
@@ -229,7 +221,6 @@ namespace Squidex.Domain.Apps.Write.Apps
             Guard.Valid(command, nameof(command), () => "Cannot change plan");
 
             ThrowIfNotCreated();
-            ThrowIfOtherUser(command);
 
             RaiseEvent(SimpleMapper.Map(command, new AppPlanChanged()));
 
@@ -240,7 +231,7 @@ namespace Squidex.Domain.Apps.Write.Apps
         {
             if (@event.AppId == null)
             {
-                @event.AppId = new NamedId<Guid>(Id, name);
+                @event.AppId = new NamedId<Guid>(Id, Name);
             }
 
             RaiseEvent(Envelope.Create(@event));
@@ -248,7 +239,7 @@ namespace Squidex.Domain.Apps.Write.Apps
 
         private static AppLanguageAdded CreateInitialLanguage(NamedId<Guid> id)
         {
-            return new AppLanguageAdded { AppId = id, Language = DefaultLanguage };
+            return new AppLanguageAdded { AppId = id, Language = Language.EN };
         }
 
         private static AppContributorAssigned CreateInitialOwner(NamedId<Guid> id, SquidexCommand command)
@@ -256,22 +247,9 @@ namespace Squidex.Domain.Apps.Write.Apps
             return new AppContributorAssigned { AppId = id, ContributorId = command.Actor.Identifier, Permission = AppContributorPermission.Owner };
         }
 
-        private void ThrowIfOtherUser(ChangePlan command)
-        {
-            if (!string.IsNullOrWhiteSpace(command.PlanId) && planOwner != null && !planOwner.Equals(command.Actor))
-            {
-                throw new ValidationException("Plan can only be changed from current user.");
-            }
-
-            if (string.Equals(command.PlanId, planId, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ValidationException("App has already this plan.");
-            }
-        }
-
         private void ThrowIfNotCreated()
         {
-            if (string.IsNullOrWhiteSpace(name))
+            if (app == null)
             {
                 throw new DomainException("App has not been created.");
             }
@@ -279,7 +257,7 @@ namespace Squidex.Domain.Apps.Write.Apps
 
         private void ThrowIfCreated()
         {
-            if (!string.IsNullOrWhiteSpace(name))
+            if (app != null)
             {
                 throw new DomainException("App has already been created.");
             }

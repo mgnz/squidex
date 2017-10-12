@@ -6,6 +6,7 @@
 //  All rights reserved.
 // ==========================================================================
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -21,7 +22,7 @@ namespace Squidex.Domain.Apps.Core
         private readonly LanguagesConfig languagesConfig = LanguagesConfig.Create(Language.DE, Language.EN);
         private readonly List<ValidationError> errors = new List<ValidationError>();
         private readonly ValidationContext context = ValidationTestExtensions.ValidContext;
-        private Schema schema = Schema.Create("my-name", new SchemaProperties());
+        private Schema schema = Schema.Create(Guid.NewGuid(), "my-name");
 
         [Fact]
         public async Task Should_add_error_if_validating_data_with_unknown_field()

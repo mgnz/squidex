@@ -21,7 +21,7 @@ namespace Squidex.Domain.Apps.Core
         private static readonly Instant Now = Instant.FromUnixTimeSeconds(SystemClock.Instance.GetCurrentInstant().ToUnixTimeSeconds());
         private readonly LanguagesConfig languagesConfig = LanguagesConfig.Create(Language.DE, Language.EN);
         private readonly Schema schema =
-            Schema.Create("my-schema", new SchemaProperties())
+            Schema.Create(Guid.NewGuid(), "my-schema")
                 .AddOrUpdateField(new JsonField(1, "my-json", Partitioning.Invariant,
                     new JsonFieldProperties()))
                 .AddOrUpdateField(new StringField(2, "my-string", Partitioning.Language,

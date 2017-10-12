@@ -16,7 +16,7 @@ using Squidex.Infrastructure;
 
 namespace Squidex.Domain.Apps.Core.Schemas
 {
-    public abstract class Field : CloneableBase
+    public abstract class Field : Cloneable<Field>
     {
         private readonly Lazy<List<IValidator>> validators;
         private readonly long fieldId;
@@ -81,31 +81,6 @@ namespace Squidex.Domain.Apps.Core.Schemas
 
         public abstract object ConvertValue(JToken value);
 
-        public Field Lock()
-        {
-            return Clone<Field>(clone => clone.isLocked = true);
-        }
-
-        public Field Hide()
-        {
-            return Clone<Field>(clone => clone.isHidden = true);
-        }
-
-        public Field Show()
-        {
-            return Clone<Field>(clone => clone.isHidden = false);
-        }
-
-        public Field Disable()
-        {
-            return Clone<Field>(clone => clone.isDisabled = true);
-        }
-
-        public Field Enable()
-        {
-            return Clone<Field>(clone => clone.isDisabled = false);
-        }
-
         public Field Update(FieldProperties newProperties)
         {
             ThrowIfLocked();
@@ -113,12 +88,55 @@ namespace Squidex.Domain.Apps.Core.Schemas
             return UpdateInternal(newProperties);
         }
 
+        public Field Lock()
+        {
+            return Clone<Field>(clone =>
+            {
+                clone.isLocked = true;
+            });
+        }
+
+        public Field Hide()
+        {
+            return Clone<Field>(clone =>
+            {
+                clone.isHidden = true;
+            });
+        }
+
+        public Field Show()
+        {
+            return Clone<Field>(clone =>
+            {
+                clone.isHidden = false;
+            });
+        }
+
+        public Field Disable()
+        {
+            return Clone<Field>(clone =>
+            {
+                clone.isDisabled = true;
+            });
+        }
+
+        public Field Enable()
+        {
+            return Clone<Field>(clone =>
+            {
+                clone.isDisabled = false;
+            });
+        }
+
         public Field Rename(string newName)
         {
             ThrowIfLocked();
             ThrowIfSameName(newName);
 
-            return Clone<Field>(clone => clone.fieldName = newName);
+            return Clone<Field>(clone =>
+            {
+                clone.fieldName = newName;
+            });
         }
 
         private void ThrowIfLocked()

@@ -121,12 +121,12 @@ namespace Squidex.Domain.Apps.Read.MongoDb.Schemas
 
         private void UpdateSchema(MongoSchemaEntity entity, Func<Schema, Schema> updater)
         {
-            entity.UpdateSchema(serializer, updater);
+            entity.UpdateSchema(serializerSettings, updater);
         }
 
         private void UpdateSchema(MongoSchemaEntity entity, Schema schema)
         {
-            entity.SerializeSchema(schema, serializer);
+            entity.SerializeSchema(schema, serializerSettings);
         }
 
 #pragma warning disable CS0612 // Type or member is obsolete

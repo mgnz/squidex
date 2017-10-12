@@ -8,9 +8,9 @@
 
 using System;
 using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Squidex.Domain.Apps.Core.Schemas;
-using Squidex.Domain.Apps.Core.Schemas.Json;
 using Squidex.Domain.Apps.Read.Schemas;
 using Squidex.Infrastructure;
 using Squidex.Infrastructure.MongoDb;
@@ -78,26 +78,26 @@ namespace Squidex.Domain.Apps.Read.MongoDb.Schemas
             get { return schema.Value; }
         }
 
-        public void SerializeSchema(Schema newSchema, SchemaJsonSerializer serializer)
+        public void SerializeSchema(Schema newSchema, JsonSerializerSettings serializerSettings)
         {
-            Schema = serializer.Serialize(newSchema).ToString();
+            Schema = JsonConvert.SerializeObject(newSchema, serializerSettings);
             schema = new Lazy<Schema>(() => newSchema);
 
             IsPublished = newSchema.IsPublished;
         }
 
-        public void UpdateSchema(SchemaJsonSerializer serializer, Func<Schema, Schema> updater)
+        public void UpdateSchema(JsonSerializerSettings serializerSettings, Func<Schema, Schema> updater)
         {
-            DeserializeSchema(serializer);
+            DeserializeSchema(serializerSettings);
 
-            SerializeSchema(updater(schema.Value), serializer);
+            SerializeSchema(updater(schema.Value), serializerSettings);
         }
 
-        public void DeserializeSchema(SchemaJsonSerializer serializer)
+        public void DeserializeSchema(JsonSerializerSettings serializerSettings)
         {
             if (schema == null)
             {
-                schema = new Lazy<Schema>(() => Schema != null ? serializer.Deserialize(JObject.Parse(Schema)) : null);
+                schema = new Lazy<Schema>(() => Schema != null ? JsonConvert.DeserializeObject<Schema>(Schema, serializerSettings) : null);
             }
         }
     }

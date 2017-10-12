@@ -8,46 +8,58 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
-using Squidex.Domain.Apps.Core.Apps;
 using Squidex.Infrastructure;
 
-namespace Squidex.Domain.Apps.Write.Apps
+namespace Squidex.Domain.Apps.Core.Apps
 {
-    public class AppContributors
+    public class AppContributors : Cloneable<AppContributors>
     {
-        private readonly Dictionary<string, AppContributorPermission> contributors = new Dictionary<string, AppContributorPermission>();
+        public static readonly AppContributors Empty = new AppContributors();
 
-        public int Count
+        private ImmutableDictionary<string, AppContributorPermission> contributors = ImmutableDictionary<string, AppContributorPermission>.Empty;
+
+        public IReadOnlyDictionary<string, AppContributorPermission> Contributors
         {
-            get { return contributors.Count; }
+            get { return contributors; }
         }
 
-        public void Assign(string contributorId, AppContributorPermission permission)
+        private AppContributors()
+        {
+        }
+
+        public AppContributors Assign(string contributorId, AppContributorPermission permission)
         {
             string Message() => "Cannot assign contributor";
 
             ThrowIfFound(contributorId, permission, Message);
             ThrowIfNoOwner(c => c[contributorId] = permission, Message);
 
-            contributors[contributorId] = permission;
+            return Clone(clone =>
+            {
+                clone.contributors = contributors.SetItem(contributorId, permission);
+            });
         }
 
-        public void Remove(string contributorId)
+        public AppContributors Remove(string contributorId)
         {
             string Message() => "Cannot remove contributor";
 
             ThrowIfNotFound(contributorId);
             ThrowIfNoOwner(c => c.Remove(contributorId), Message);
 
-            contributors.Remove(contributorId);
+            return Clone(clone =>
+            {
+                clone.contributors = contributors.Remove(contributorId);
+            });
         }
 
         private void ThrowIfNotFound(string contributorId)
         {
             if (!contributors.ContainsKey(contributorId))
             {
-                throw new DomainObjectNotFoundException(contributorId, "Contributors", typeof(AppDomainObject));
+                throw new DomainObjectNotFoundException(contributorId, "Contributors", typeof(App));
             }
         }
 

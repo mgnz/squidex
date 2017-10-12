@@ -7,16 +7,30 @@
 // ==========================================================================
 
 using System;
-using Squidex.Domain.Apps.Core.Apps;
 using Squidex.Infrastructure;
 
-namespace Squidex.Domain.Apps.Write.Apps
+namespace Squidex.Domain.Apps.Core.Apps
 {
     public sealed class AppClient
     {
         private readonly string name;
         private readonly string secret;
         private readonly AppClientPermission permission;
+
+        public string Name
+        {
+            get { return name; }
+        }
+
+        public string Secret
+        {
+            get { return secret; }
+        }
+
+        public AppClientPermission Permission
+        {
+            get { return permission; }
+        }
 
         public AppClient(string secret, string name, AppClientPermission permission)
         {

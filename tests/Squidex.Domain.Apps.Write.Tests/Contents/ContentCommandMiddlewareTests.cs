@@ -46,7 +46,7 @@ namespace Squidex.Domain.Apps.Write.Contents
         public ContentCommandMiddlewareTests()
         {
             var schemaDef =
-                Schema.Create("my-schema", new SchemaProperties())
+                Schema.Create(Guid.NewGuid(), "my-schema")
                     .AddOrUpdateField(new NumberField(1, "my-field", Partitioning.Invariant,
                         new NumberFieldProperties { IsRequired = true }));
 

@@ -30,7 +30,7 @@ namespace Squidex.Domain.Apps.Read.Contents
     public class ODataQueryTests
     {
         private readonly Schema schemaDef =
-            Schema.Create("user", new SchemaProperties { Hints = "The User" })
+            Schema.Create(Guid.NewGuid(), "user")
                 .AddOrUpdateField(new StringField(1, "firstName", Partitioning.Language,
                     new StringFieldProperties { Label = "FirstName", IsRequired = true, AllowedValues = new[] { "1", "2" }.ToImmutableList() }))
                 .AddOrUpdateField(new StringField(2, "lastName", Partitioning.Language,

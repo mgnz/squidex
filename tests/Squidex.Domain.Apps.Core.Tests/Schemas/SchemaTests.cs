@@ -19,7 +19,7 @@ namespace Squidex.Domain.Apps.Core.Schemas
 {
     public class SchemaTests
     {
-        private Schema sut = Schema.Create("my-name", new SchemaProperties());
+        private Schema sut = Schema.Create(Guid.NewGuid(), "my-name");
 
         private sealed class InvalidProperties : FieldProperties
         {
@@ -39,7 +39,7 @@ namespace Squidex.Domain.Apps.Core.Schemas
         {
             var properties = new SchemaProperties { Hints = "my-hint", Label = "my-label" };
 
-            var schema = Schema.Create("my-name", properties);
+            var schema = Schema.Create(Guid.NewGuid(), "my-name").Update(properties);
 
             Assert.Equal("my-name", schema.Name);
             Assert.Equal(properties, schema.Properties);
@@ -48,7 +48,7 @@ namespace Squidex.Domain.Apps.Core.Schemas
         [Fact]
         public void Should_throw_exception_if_creating_schema_with_invalid_name()
         {
-            Assert.Throws<ValidationException>(() => Schema.Create("Invalid Name", new SchemaProperties()));
+            Assert.Throws<ValidationException>(() => Schema.Create(Guid.NewGuid(), "Invalid Name"));
         }
 
         [Fact]
@@ -360,7 +360,8 @@ namespace Squidex.Domain.Apps.Core.Schemas
         private static Schema BuildMixedSchema()
         {
             var schema =
-                Schema.Create("user", new SchemaProperties { Hints = "The User" })
+                Schema.Create(Guid.NewGuid(), "user")
+                    .Update(new SchemaProperties { Hints = "The User" })
                     .AddOrUpdateField(new JsonField(1, "my-json", Partitioning.Invariant,
                         new JsonFieldProperties()))
                     .AddOrUpdateField(new AssetsField(2, "my-assets", Partitioning.Invariant,

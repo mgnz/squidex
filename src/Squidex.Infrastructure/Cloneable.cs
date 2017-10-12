@@ -1,24 +1,17 @@
 ﻿// ==========================================================================
-//  CloneableBase.cs
+//  Cloneable.cs
 //  Squidex Headless CMS
 // ==========================================================================
 //  Copyright (c) Squidex Group
 //  All rights reserved.
 // ==========================================================================
 
-using System;
-
-namespace Squidex.Domain.Apps.Core.Schemas
+namespace Squidex.Infrastructure
 {
-    public abstract class CloneableBase
+    public abstract class Cloneable
     {
-        protected T Clone<T>(Action<T> updater) where T : CloneableBase
+        public virtual void OnInit()
         {
-            var clone = (T)MemberwiseClone();
-
-            updater(clone);
-
-            return clone;
         }
     }
 }

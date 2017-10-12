@@ -12,22 +12,53 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.OData.Edm;
 using NJsonSchema;
+using NodaTime;
 using Squidex.Infrastructure;
 
 namespace Squidex.Domain.Apps.Core.Schemas
 {
-    public sealed class Schema : CloneableBase
+    public sealed class Schema : ImmutableDomainObject
     {
         private readonly string name;
-        private readonly SchemaProperties properties;
-        private readonly ImmutableList<Field> fields;
-        private readonly ImmutableDictionary<long, Field> fieldsById;
-        private readonly ImmutableDictionary<string, Field> fieldsByName;
-        private readonly bool isPublished;
+        private SchemaProperties properties = new SchemaProperties();
+        private ImmutableList<Field> fields = ImmutableList<Field>.Empty;
+        private ImmutableDictionary<long, Field> fieldsById;
+        private ImmutableDictionary<string, Field> fieldsByName;
+        private string scriptQuery;
+        private string scriptCreate;
+        private string scriptUpdate;
+        private string scriptDelete;
+        private string scriptChange;
+        private bool isPublished;
 
         public string Name
         {
             get { return name; }
+        }
+
+        public string ScriptQuery
+        {
+            get { return scriptQuery; }
+        }
+
+        public string ScriptCreate
+        {
+            get { return scriptCreate; }
+        }
+
+        public string ScriptUpdate
+        {
+            get { return scriptUpdate; }
+        }
+
+        public string ScriptDelete
+        {
+            get { return scriptDelete; }
+        }
+
+        public string ScriptChange
+        {
+            get { return scriptChange; }
         }
 
         public bool IsPublished
@@ -55,27 +86,24 @@ namespace Squidex.Domain.Apps.Core.Schemas
             get { return properties; }
         }
 
-        public Schema(string name, bool isPublished, SchemaProperties properties, ImmutableList<Field> fields)
+        private Schema(Guid id, string name, Instant now, RefToken actor)
+            : base(id, now, actor)
         {
-            Guard.NotNull(fields, nameof(fields));
-            Guard.NotNull(properties, nameof(properties));
-            Guard.ValidSlug(name, nameof(name));
-
-            fieldsById = fields.ToImmutableDictionary(x => x.Id);
-            fieldsByName = fields.ToImmutableDictionary(x => x.Name, StringComparer.OrdinalIgnoreCase);
-
             this.name = name;
-
-            this.fields = fields;
-
-            this.properties = properties;
-            this.properties.Freeze();
-
-            this.isPublished = isPublished;
         }
 
-        public static Schema Create(string name, SchemaProperties newProperties)
+        public override void OnInit()
         {
+            properties.Freeze();
+
+            fieldsById = fields.ToImmutableDictionary(x => x.Id);
+            fieldsByName = fields.ToImmutableDictionary(x => x.Name);
+        }
+
+        public static Schema Create(Guid id, string name, Instant now, RefToken actor)
+        {
+            Guard.NotEmpty(id, nameof(id));
+
             if (!name.IsSlug())
             {
                 var error = new ValidationError("Name must be a valid slug", "Name");
@@ -83,82 +111,106 @@ namespace Squidex.Domain.Apps.Core.Schemas
                 throw new ValidationException("Cannot create a new schema", error);
             }
 
-            return new Schema(name, false, newProperties, ImmutableList<Field>.Empty);
+            return new Schema(id, name, now, actor);
         }
 
-        public Schema Update(SchemaProperties newProperties)
+        public Schema UpdateField(Instant now, RefToken actor, long fieldId, FieldProperties newProperties)
         {
-            Guard.NotNull(newProperties, nameof(newProperties));
-
-            return new Schema(name, isPublished, newProperties, fields);
+            return UpdateField(now, actor, fieldId, field => field.Update(newProperties));
         }
 
-        public Schema UpdateField(long fieldId, FieldProperties newProperties)
+        public Schema LockField(Instant now, RefToken actor, long fieldId)
         {
-            return UpdateField(fieldId, field => field.Update(newProperties));
+            return UpdateField(now, actor, fieldId, field => field.Lock());
         }
 
-        public Schema LockField(long fieldId)
+        public Schema DisableField(Instant now, RefToken actor, long fieldId)
         {
-            return UpdateField(fieldId, field => field.Lock());
+            return UpdateField(now, actor, fieldId, field => field.Disable());
         }
 
-        public Schema DisableField(long fieldId)
+        public Schema EnableField(Instant now, RefToken actor, long fieldId)
         {
-            return UpdateField(fieldId, field => field.Disable());
+            return UpdateField(now, actor, fieldId, field => field.Enable());
         }
 
-        public Schema EnableField(long fieldId)
+        public Schema HideField(Instant now, RefToken actor, long fieldId)
         {
-            return UpdateField(fieldId, field => field.Enable());
+            return UpdateField(now, actor, fieldId, field => field.Hide());
         }
 
-        public Schema HideField(long fieldId)
+        public Schema ShowField(Instant now, RefToken actor, long fieldId)
         {
-            return UpdateField(fieldId, field => field.Hide());
+            return UpdateField(now, actor, fieldId, field => field.Show());
         }
 
-        public Schema ShowField(long fieldId)
+        public Schema RenameField(Instant now, RefToken actor, long fieldId, string newName)
         {
-            return UpdateField(fieldId, field => field.Show());
+            return UpdateField(now, actor, fieldId, field => field.Rename(newName));
         }
 
-        public Schema RenameField(long fieldId, string newName)
-        {
-            return UpdateField(fieldId, field => field.Rename(newName));
-        }
-
-        public Schema DeleteField(long fieldId)
+        public Schema DeleteField(Instant now, RefToken actor, long fieldId)
         {
             if (fieldsById.TryGetValue(fieldId, out var field) && field.IsLocked)
             {
                 throw new DomainException($"Field {fieldId} is locked.");
             }
 
-            return new Schema(name, isPublished, properties, fields.Where(x => x.Id != fieldId).ToImmutableList());
+            return Update<Schema>(now, actor, clone =>
+            {
+                clone.fields = fields.Where(x => x.Id != fieldId).ToImmutableList();
+            });
         }
 
-        public Schema Publish()
+        public Schema Update(Instant now, RefToken actor, SchemaProperties newProperties)
+        {
+            Guard.NotNull(newProperties, nameof(newProperties));
+
+            return Update<Schema>(now, actor, clone =>
+            {
+                clone.properties = newProperties;
+            });
+        }
+
+        public Schema Publish(Instant now, RefToken actor)
         {
             if (isPublished)
             {
                 throw new DomainException("Schema is already published");
             }
 
-            return new Schema(name, true, properties, fields);
+            return Update<Schema>(now, actor, clone =>
+            {
+                clone.isPublished = true;
+            });
         }
 
-        public Schema Unpublish()
+        public Schema Unpublish(Instant now, RefToken actor)
         {
             if (!isPublished)
             {
                 throw new DomainException("Schema is not published");
             }
 
-            return new Schema(name, false, properties, fields);
+            return Update<Schema>(now, actor, clone =>
+            {
+                clone.isPublished = false;
+            });
         }
 
-        public Schema ReorderFields(List<long> ids)
+        public Schema ConfigureScripts(Instant now, RefToken actor, string query, string create, string update, string change, string deleted)
+        {
+            return Update<Schema>(now, actor, clone =>
+            {
+                clone.scriptChange = change;
+                clone.scriptCreate = create;
+                clone.scriptDelete = deleted;
+                clone.scriptQuery = query;
+                clone.scriptUpdate = update;
+            });
+        }
+
+        public Schema ReorderFields(Instant now, RefToken actor, List<long> ids)
         {
             Guard.NotNull(ids, nameof(ids));
 
@@ -169,10 +221,13 @@ namespace Squidex.Domain.Apps.Core.Schemas
 
             var newFields = fields.OrderBy(f => ids.IndexOf(f.Id)).ToImmutableList();
 
-            return new Schema(name, isPublished, properties, newFields);
+            return Update<Schema>(now, actor, clone =>
+            {
+                clone.fields = newFields;
+            });
         }
 
-        public Schema UpdateField(long fieldId, Func<Field, Field> updater)
+        public Schema UpdateField(Instant now, RefToken actor, long fieldId, Func<Field, Field> updater)
         {
             Guard.NotNull(updater, nameof(updater));
 
@@ -183,10 +238,10 @@ namespace Squidex.Domain.Apps.Core.Schemas
 
             var newField = updater(field);
 
-            return AddOrUpdateField(newField);
+            return AddOrUpdateField(now, actor, newField);
         }
 
-        public Schema AddOrUpdateField(Field field)
+        public Schema AddOrUpdateField(Instant now, RefToken actor, Field field)
         {
             Guard.NotNull(field, nameof(field));
 
@@ -206,7 +261,10 @@ namespace Squidex.Domain.Apps.Core.Schemas
                 newFields = fields.Add(field);
             }
 
-            return new Schema(name, isPublished, properties, newFields);
+            return Update<Schema>(now, actor, clone =>
+            {
+                clone.fields = newFields;
+            });
         }
 
         public EdmComplexType BuildEdmType(PartitionResolver partitionResolver, Func<EdmComplexType, EdmComplexType> typeResolver)
