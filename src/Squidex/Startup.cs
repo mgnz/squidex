@@ -49,6 +49,7 @@ namespace Squidex
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", true, true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", true)
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.secrets.json", true)
                 .AddEnvironmentVariables();
 
             Configuration = builder.Build();
