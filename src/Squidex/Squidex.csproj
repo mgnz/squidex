@@ -18,6 +18,9 @@
     <Compile Remove="Assets\**" />
     <Content Remove="Assets\**" />
     <None Remove="Assets\**" />
+    <Content Remove="web.development.config" />
+    <Content Remove="web.production.config" />
+    <Content Remove="web.staging.config" />
 	<None Update="dockerfile">
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
@@ -85,11 +88,51 @@
     <PackageReference Include="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <DotNetCliToolReference Include="Microsoft.DotNet.Xdt.Tools" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="web.development.config" />
+    <None Include="web.production.config" />
+    <None Include="web.staging.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="appsettings.development.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="appsettings.development.secrets.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="appsettings.production.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="appsettings.production.secrets.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="appsettings.staging.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="appsettings.staging.secrets.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <Target Name="IncludeDocFile" BeforeTargets="PrepareForPublish">
     <ItemGroup Condition=" '$(DocumentationFile)' != '' ">
       <_DocumentationFile Include="$(DocumentationFile)" />
       <ContentWithTargetPath Include="@(_DocumentationFile->'%(FullPath)')" RelativePath="%(_DocumentationFile.Identity)" TargetPath="%(_DocumentationFile.Filename)%(_DocumentationFile.Extension)" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
+  </Target>
+
+  <Target Name="ApplyXdtConfigTransform" BeforeTargets="_TransformWebConfig">
+    <PropertyGroup>
+      <_SourceWebConfig>$(MSBuildThisFileDirectory)Web.config</_SourceWebConfig>
+      <_XdtTransform>$(MSBuildThisFileDirectory)Web.$(Configuration).config</_XdtTransform>
+      <_TargetWebConfig>$(PublishDir)Web.config</_TargetWebConfig>
+    </PropertyGroup>
+    <Exec Command="dotnet transform-xdt --xml &quot;$(_SourceWebConfig)&quot; --transform &quot;$(_XdtTransform)&quot; --output &quot;$(_TargetWebConfig)&quot;" Condition="Exists('$(_XdtTransform)')" />
   </Target>
     
   <PropertyGroup>
