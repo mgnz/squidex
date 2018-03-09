@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  PropertiesBagConverter.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -13,16 +12,37 @@ using NodaTime.Extensions;
 
 namespace Squidex.Infrastructure.Json
 {
-    public sealed class PropertiesBagConverter : JsonConverter
+    public sealed class PropertiesBagConverter<T> : JsonClassConverter<T> where T : PropertiesBag, new()
     {
-        public override bool CanConvert(Type objectType)
+        protected override void WriteValue(JsonWriter writer, T value, JsonSerializer serializer)
         {
-            return typeof(PropertiesBag).IsAssignableFrom(objectType);
+            writer.WriteStartObject();
+
+            foreach (var kvp in value.Properties)
+            {
+                writer.WritePropertyName(kvp.Key);
+
+                if (kvp.Value.RawValue is Instant)
+                {
+                    writer.WriteValue(kvp.Value.ToString());
+                }
+                else
+                {
+                    writer.WriteValue(kvp.Value.RawValue);
+                }
+            }
+
+            writer.WriteEndObject();
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        protected override T ReadValue(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
-            var properties = new PropertiesBag();
+            if (reader.TokenType != JsonToken.StartObject)
+            {
+                throw new JsonException($"Expected Object, but got {reader.TokenType}.");
+            }
+
+            var properties = new T();
 
             while (reader.Read())
             {
@@ -50,27 +70,9 @@ namespace Squidex.Infrastructure.Json
             return properties;
         }
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override bool CanConvert(Type objectType)
         {
-            var properties = (PropertiesBag)value;
-
-            writer.WriteStartObject();
-
-            foreach (var kvp in properties.Properties)
-            {
-                writer.WritePropertyName(kvp.Key);
-
-                if (kvp.Value.RawValue is Instant)
-                {
-                    writer.WriteValue(kvp.Value.ToString());
-                }
-                else
-                {
-                    writer.WriteValue(kvp.Value.RawValue);
-                }
-            }
-
-            writer.WriteEndObject();
+            return objectType == typeof(T);
         }
     }
 }

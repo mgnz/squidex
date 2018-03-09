@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  InstantConverterTests.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -13,12 +12,28 @@ using Xunit;
 
 namespace Squidex.Infrastructure.Json
 {
-    public sealed class InstantConverterTests
+    public class InstantConverterTests
     {
         [Fact]
         public void Should_serialize_and_deserialize()
         {
             var value = Instant.FromDateTimeUtc(DateTime.UtcNow.Date);
+
+            value.SerializeAndDeserialize(new InstantConverter());
+        }
+
+        [Fact]
+        public void Should_serialize_and_deserialize_nullable_with_value()
+        {
+            Instant? value = Instant.FromDateTimeUtc(DateTime.UtcNow.Date);
+
+            value.SerializeAndDeserialize(new InstantConverter());
+        }
+
+        [Fact]
+        public void Should_serialize_and_deserialize_nullable_with_null()
+        {
+            Instant? value = null;
 
             value.SerializeAndDeserialize(new InstantConverter());
         }

@@ -2,14 +2,14 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { ChartModule } from 'angular2-chartjs';
 
-import { SqxFrameworkModule } from 'shared';
+import { SqxFrameworkModule, SqxSharedModule } from 'shared';
 
 import {
     DashboardPageComponent
@@ -26,6 +26,7 @@ const routes: Routes = [
     imports: [
         ChartModule,
         SqxFrameworkModule,
+        SqxSharedModule,
         RouterModule.forChild(routes)
     ],
     declarations: [

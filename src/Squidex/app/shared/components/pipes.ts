@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { ChangeDetectorRef, OnDestroy, Pipe, PipeTransform } from '@angular/core';
@@ -71,7 +71,7 @@ export class UserNameRefPipe extends UserAsyncPipe implements PipeTransform {
         super(users, changeDetector);
     }
 
-    public transform(userId: string, placeholder = 'Me'): string | null {
+    public transform(userId: string, placeholder: string | null = 'Me'): string | null {
         return super.transformInternal(userId, users => {
             const parts = userId.split(':');
 
@@ -199,13 +199,8 @@ export class UserPictureRefPipe extends UserAsyncPipe implements PipeTransform {
     pure: true
 })
 export class AssetUrlPipe implements PipeTransform {
-    constructor(
-        private readonly apiUrl: ApiUrlConfig
-    ) {
-    }
-
-    public transform(asset: { id: any }): string {
-        return this.apiUrl.buildUrl(`api/assets/${asset.id}?q=${MathHelper.guid()}`);
+    public transform(asset: { url: any }): string {
+        return `${asset.url}?q=${MathHelper.guid()}`;
     }
 }
 

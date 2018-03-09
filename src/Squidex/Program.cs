@@ -1,17 +1,17 @@
 ﻿// ==========================================================================
-//  Program.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
+using Squidex.Infrastructure.Log.Adapter;
 
 namespace Squidex
 {
-    public class Program
+    public static class Program
     {
         public static void Main(string[] args)
         {
@@ -19,7 +19,15 @@ namespace Squidex
                 .UseKestrel(k => { k.AddServerHeader = false; })
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseIISIntegration()
-                .UseStartup<Startup>()
+                .UseStartup<WebStartup>()
+                .ConfigureLogging(builder =>
+                {
+                    builder.AddSemanticLog();
+                })
+                .ConfigureAppConfiguration((hostContext, builder) =>
+                {
+                    builder.AddAppConfiguration(hostContext.HostingEnvironment.EnvironmentName, args);
+                })
                 .Build()
                 .Run();
         }

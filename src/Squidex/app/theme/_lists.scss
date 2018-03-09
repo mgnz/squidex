@@ -13,7 +13,7 @@
     td {
         // Unified padding for all table cells.
         & {
-            padding: 1rem;
+            padding: .7rem;
         }
 
         // Additional padding for the first column.
@@ -25,6 +25,10 @@
         &:last-child {
             padding-right: 1.25rem;
         }
+    }
+
+    td {
+        border-top: 0;
     }
 
     thead {
@@ -123,7 +127,7 @@
             // Caret that is placed next to the expand button.
             &::before {
                 @include caret-top($color-border);
-                @include absolute(-1.1rem, 5.2rem, auto, auto);
+                @include absolute(-1.1rem, 0, auto, auto);
             }
 
             &-tab {
@@ -160,20 +164,72 @@
         }
 
         &:hover {
-            color: $color-theme-blue-dark;
+            color: $color-theme-blue-dark !important;
         }
 
         &.active {
-            background: $color-theme-blue;
-            border-color: $color-theme-blue;
-            color: $color-dark-foreground;
+            background: $color-theme-blue !important;
+            border-color: $color-theme-blue !important;
+            color: $color-dark-foreground !important;
         }
     }
 
     // Spacer item between two normal items, because table rows cannot have margins.
     .spacer {
         border: 0;
-        height: .3rem;
+        height: .25rem;
+    }
+}
+
+//
+// Cell styles
+//
+.cell {
+    &-40 {
+        width: 40%;
+    }
+
+    &-60 {
+        width: 60%;
+    }
+
+    &-select {
+        width: 50px;
+    }
+
+    &-label {
+        width: 100px;
+    }
+
+    &-separator {
+        width: 60px;
+    }
+
+    &-user {
+        width: 55px;
+    }
+
+    &-time {
+        width: 180px;
+    }
+
+    &-actions {
+        width: 70px;
+    }
+
+    &-actions-lg {
+        width: 150px;
+    }
+
+    &-separator,
+    &-select {
+        text-align: center;
+    }
+
+    &-auto-right,
+    &-actions,
+    &-actions-lg {
+        text-align: right;
     }
 }
 

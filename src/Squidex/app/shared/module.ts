@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
@@ -16,9 +16,10 @@ import {
     AppClientsService,
     AppContributorsService,
     AppLanguagesService,
+    AppMustExistGuard,
+    AppPatternsService,
     AppsStoreService,
     AppsService,
-    AppMustExistGuard,
     AssetComponent,
     AssetPreviewUrlPipe,
     AssetsService,
@@ -28,6 +29,7 @@ import {
     ContentsService,
     EventConsumersService,
     FileIconPipe,
+    GeolocationEditorComponent,
     GraphQlService,
     HelpComponent,
     HelpService,
@@ -35,6 +37,7 @@ import {
     HistoryService,
     LanguageSelectorComponent,
     LanguagesService,
+    MarkdownEditorComponent,
     MustBeAuthenticatedGuard,
     MustBeNotAuthenticatedGuard,
     PlansService,
@@ -44,7 +47,9 @@ import {
     ResolveSchemaGuard,
     SchemasService,
     ResolveUserGuard,
+    RulesService,
     UIService,
+    UnsetAppGuard,
     UsagesService,
     UserDtoPicture,
     UserEmailPipe,
@@ -57,7 +62,7 @@ import {
     UserManagementService,
     UsersProviderService,
     UsersService,
-    WebhooksService
+    RichEditorComponent
 } from './declarations';
 
 @NgModule({
@@ -71,9 +76,11 @@ import {
         AssetPreviewUrlPipe,
         AssetUrlPipe,
         FileIconPipe,
+        GeolocationEditorComponent,
         HelpComponent,
         HistoryComponent,
         LanguageSelectorComponent,
+        MarkdownEditorComponent,
         UserDtoPicture,
         UserEmailPipe,
         UserEmailRefPipe,
@@ -81,7 +88,8 @@ import {
         UserNamePipe,
         UserNameRefPipe,
         UserPicturePipe,
-        UserPictureRefPipe
+        UserPictureRefPipe,
+        RichEditorComponent
     ],
     exports: [
         AppFormComponent,
@@ -89,9 +97,11 @@ import {
         AssetPreviewUrlPipe,
         AssetUrlPipe,
         FileIconPipe,
+        GeolocationEditorComponent,
         HelpComponent,
         HistoryComponent,
         LanguageSelectorComponent,
+        MarkdownEditorComponent,
         UserDtoPicture,
         UserEmailPipe,
         UserEmailRefPipe,
@@ -99,7 +109,8 @@ import {
         UserNamePipe,
         UserNameRefPipe,
         UserPicturePipe,
-        UserPictureRefPipe
+        UserPictureRefPipe,
+        RichEditorComponent
     ]
 })
 export class SqxSharedModule {
@@ -110,9 +121,10 @@ export class SqxSharedModule {
                 AppClientsService,
                 AppContributorsService,
                 AppLanguagesService,
-                AppsStoreService,
-                AppsService,
                 AppMustExistGuard,
+                AppPatternsService,
+                AppsService,
+                AppsStoreService,
                 AssetsService,
                 AuthService,
                 ContentsService,
@@ -129,13 +141,14 @@ export class SqxSharedModule {
                 ResolvePublishedSchemaGuard,
                 ResolveSchemaGuard,
                 ResolveUserGuard,
+                RulesService,
                 SchemasService,
                 UIService,
+                UnsetAppGuard,
                 UsagesService,
                 UserManagementService,
                 UsersProviderService,
                 UsersService,
-                WebhooksService,
                 {
                     provide: HTTP_INTERCEPTORS,
                     useClass: AuthInterceptor,

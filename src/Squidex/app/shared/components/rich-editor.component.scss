@@ -1,0 +1,12 @@
+@import '_mixins';
+@import '_vars';
+
+.editor {
+    background: $color-dark-foreground;
+    border: 1px solid $color-input;
+    height: 30rem;
+}
+
+.drop-area {
+    @include absolute(100px, 30px, 66px, 30px);
+}

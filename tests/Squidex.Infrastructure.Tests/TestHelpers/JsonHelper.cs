@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  JsonHelper.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -31,25 +30,41 @@ namespace Squidex.Infrastructure.TestHelpers
 
         public static void SerializeAndDeserialize<T>(this T value, JsonConverter converter)
         {
-            var serializerSettings = new JsonSerializerSettings();
+            var output = SerializeAndDeserializeAndReturn(value, converter);
 
-            serializerSettings.Converters.Add(converter);
-            serializerSettings.NullValueHandling = NullValueHandling.Include;
+            Assert.Equal(value, output);
+        }
+
+        public static T SerializeAndDeserializeAndReturn<T>(this T value, JsonConverter converter)
+        {
+            var serializerSettings = CreateSettings(converter);
 
             var result = JsonConvert.SerializeObject(Tuple.Create(value), serializerSettings);
             var output = JsonConvert.DeserializeObject<Tuple<T>>(result, serializerSettings);
 
-            Assert.Equal(value, output.Item1);
+            return output.Item1;
         }
 
         public static void DoesNotDeserialize<T>(string value, JsonConverter converter)
         {
-            var serializerSettings = new JsonSerializerSettings();
-
-            serializerSettings.Converters.Add(converter);
-            serializerSettings.NullValueHandling = NullValueHandling.Include;
+            var serializerSettings = CreateSettings(converter);
 
             Assert.ThrowsAny<JsonException>(() => JsonConvert.DeserializeObject<Tuple<T>>($"{{ \"Item1\": \"{value}\" }}", serializerSettings));
+        }
+
+        private static JsonSerializerSettings CreateSettings(JsonConverter converter)
+        {
+            var serializerSettings = new JsonSerializerSettings();
+
+            if (converter != null)
+            {
+                serializerSettings.Converters.Add(converter);
+            }
+
+            serializerSettings.NullValueHandling = NullValueHandling.Include;
+            serializerSettings.TypeNameHandling = TypeNameHandling.Auto;
+
+            return serializerSettings;
         }
     }
 }

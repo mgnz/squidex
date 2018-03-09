@@ -2,10 +2,10 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
-import { HttpClient, HttpErrorResponse, HttpEventType, HttpHeaders, HttpRequest, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpHeaders, HttpRequest, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -13,7 +13,6 @@ import {
     AnalyticsService,
     ApiUrlConfig,
     DateTime,
-    LocalCacheService,
     HTTP,
     Version,
     Versioned
@@ -42,6 +41,7 @@ export class AssetDto {
         public readonly isImage: boolean,
         public readonly pixelWidth: number | null,
         public readonly pixelHeight: number | null,
+        public readonly url: string,
         public readonly version: Version
     ) {
     }
@@ -59,6 +59,7 @@ export class AssetDto {
             update.isImage,
             update.pixelWidth,
             update.pixelHeight,
+            this.url,
             version);
     }
 
@@ -75,6 +76,7 @@ export class AssetDto {
             this.isImage,
             this.pixelWidth,
             this.pixelHeight,
+            this.url,
             version);
     }
 }
@@ -103,30 +105,28 @@ export class AssetsService {
     constructor(
         private readonly http: HttpClient,
         private readonly apiUrl: ApiUrlConfig,
-        private readonly analytics: AnalyticsService,
-        private readonly localCache: LocalCacheService
+        private readonly analytics: AnalyticsService
     ) {
     }
 
-    public getAssets(appName: string, take: number, skip: number, query?: string, mimeTypes?: string[], ids?: string[]): Observable<AssetsDto> {
-        const queries: string[] = [];
+    public getAssets(appName: string, take: number, skip: number, query?: string, ids?: string[]): Observable<AssetsDto> {
+        let fullQuery = '';
 
-        if (mimeTypes && mimeTypes.length > 0) {
-            queries.push(`mimeTypes=${mimeTypes.join(',')}`);
+        if (ids) {
+            fullQuery = `ids=${ids.join(',')}`;
+        } else {
+            const queries: string[] = [];
+
+            if (query && query.length > 0) {
+                queries.push(`$filter=contains(fileName,'${encodeURIComponent(query)}')`);
+            }
+
+            queries.push(`$top=${take}`);
+            queries.push(`$skip=${skip}`);
+
+            fullQuery = queries.join('&');
         }
 
-        if (ids && ids.length > 0) {
-            queries.push(`ids=${ids.join(',')}`);
-        }
-
-        if (query && query.length > 0) {
-            queries.push(`query=${query}`);
-        }
-
-        queries.push(`take=${take}`);
-        queries.push(`skip=${skip}`);
-
-        const fullQuery = queries.join('&');
 
         const url = this.apiUrl.buildUrl(`api/apps/${appName}/assets?${fullQuery}`);
 
@@ -137,6 +137,8 @@ export class AssetsService {
                     const items: any[] = body.items;
 
                     return new AssetsDto(body.total, items.map(item => {
+                        const assetUrl = this.apiUrl.buildUrl(`api/assets/${item.id}`);
+
                         return new AssetDto(
                             item.id,
                             item.createdBy,
@@ -151,6 +153,7 @@ export class AssetsService {
                             item.isImage,
                             item.pixelWidth,
                             item.pixelHeight,
+                            assetUrl,
                             new Version(item.version.toString()));
                     }));
                 })
@@ -175,6 +178,7 @@ export class AssetsService {
                         return percentDone;
                     } else if (event instanceof HttpResponse) {
                         const response: any = event.body;
+                        const assetUrl = this.apiUrl.buildUrl(`api/assets/${response.id}`);
 
                         now = now || DateTime.now();
 
@@ -192,9 +196,8 @@ export class AssetsService {
                             response.isImage,
                             response.pixelWidth,
                             response.pixelHeight,
-                            new Version(event.headers.get('etag')));
-
-                        this.localCache.set(`asset.${dto.id}`, dto, 5000);
+                            assetUrl,
+                            new Version(event.headers.get('etag')!));
 
                         return dto;
                     }
@@ -212,6 +215,8 @@ export class AssetsService {
                 .map(response => {
                     const body = response.payload.body;
 
+                    const assetUrl = this.apiUrl.buildUrl(`api/assets/${body.id}`);
+
                     return new AssetDto(
                         body.id,
                         body.createdBy,
@@ -226,18 +231,8 @@ export class AssetsService {
                         body.isImage,
                         body.pixelWidth,
                         body.pixelHeight,
+                        assetUrl,
                         response.version);
-                })
-                .catch(error => {
-                    if (error instanceof HttpErrorResponse && error.status === 404) {
-                        const cached = this.localCache.get(`asset.${id}`);
-
-                        if (cached) {
-                            return Observable.of(cached);
-                        }
-                    }
-
-                    return Observable.throw(error);
                 })
                 .pretifyError('Failed to load assets. Please reload.');
     }
@@ -272,7 +267,7 @@ export class AssetsService {
                             response.pixelWidth,
                             response.pixelHeight);
 
-                        return new Versioned(new Version(event.headers.get('etag')), replaced);
+                        return new Versioned(new Version(event.headers.get('etag')!), replaced);
                     }
                 })
                 .do(() => {
@@ -287,8 +282,6 @@ export class AssetsService {
         return HTTP.deleteVersioned(this.http, url, version)
                 .do(() => {
                     this.analytics.trackEvent('Analytics', 'Deleted', appName);
-
-                    this.localCache.remove(`asset.${id}`);
                 })
                 .pretifyError('Failed to delete asset. Please reload.');
     }

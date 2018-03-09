@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Component, Input, OnInit } from '@angular/core';
@@ -23,13 +23,17 @@ export class BooleanUIComponent implements OnInit {
     public properties: BooleanFieldPropertiesDto;
 
     public ngOnInit() {
-        this.editForm.addControl('editor',
+        this.editForm.setControl('editor',
             new FormControl(this.properties.editor, [
                 Validators.required
             ]));
-        this.editForm.addControl('placeholder',
+
+        this.editForm.setControl('placeholder',
             new FormControl(this.properties.placeholder, [
                 Validators.maxLength(100)
             ]));
+
+        this.editForm.setControl('inlineEditable',
+            new FormControl(this.properties.inlineEditable));
     }
 }

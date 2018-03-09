@@ -2,28 +2,25 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormControl } from '@angular/forms';
 import { Subscription } from 'rxjs';
 
 import {
-    AppComponentBase,
-    AppsStoreService,
-    AuthService,
-    DialogService,
+    AppContext,
     fadeAnimation,
     ImmutableArray,
-    MessageBus,
     ModalView,
     SchemaDto,
     SchemasService
 } from 'shared';
 
 import {
+    SchemaCloning,
     SchemaCreated,
     SchemaDeleted,
     SchemaUpdated
@@ -33,13 +30,17 @@ import {
     selector: 'sqx-schemas-page',
     styleUrls: ['./schemas-page.component.scss'],
     templateUrl: './schemas-page.component.html',
+    providers: [
+        AppContext
+    ],
     animations: [
         fadeAnimation
     ]
 })
-export class SchemasPageComponent extends AppComponentBase implements OnDestroy, OnInit {
+export class SchemasPageComponent implements OnDestroy, OnInit {
     private schemaUpdatedSubscription: Subscription;
     private schemaDeletedSubscription: Subscription;
+    private schemaCloningSubscription: Subscription;
 
     public addSchemaDialog = new ModalView();
 
@@ -48,17 +49,18 @@ export class SchemasPageComponent extends AppComponentBase implements OnDestroy,
     public schemasFilter = new FormControl();
     public schemasFiltered = ImmutableArray.empty<SchemaDto>();
 
-    constructor(apps: AppsStoreService, dialogs: DialogService, authService: AuthService,
-        private readonly schemasService: SchemasService,
-        private readonly messageBus: MessageBus,
-        private readonly route: ActivatedRoute
+    public import: any;
+
+    constructor(public readonly ctx: AppContext,
+        private readonly router: Router,
+        private readonly schemasService: SchemasService
     ) {
-        super(dialogs, apps, authService);
     }
 
     public ngOnDestroy() {
         this.schemaUpdatedSubscription.unsubscribe();
         this.schemaDeletedSubscription.unsubscribe();
+        this.schemaCloningSubscription.unsubscribe();
     }
 
     public ngOnInit() {
@@ -69,21 +71,27 @@ export class SchemasPageComponent extends AppComponentBase implements OnDestroy,
                 this.updateSchemas(this.schemas, this.schemaQuery = q);
             });
 
-        this.route.params.map(q => q['showDialog'])
+        this.ctx.route.params.map(q => q['showDialog'])
             .subscribe(showDialog => {
                 if (showDialog) {
                     this.addSchemaDialog.show();
                 }
             });
 
+        this.schemaCloningSubscription =
+            this.ctx.bus.of(SchemaCloning)
+                .subscribe(m => {
+                    this.createSchema(m.importing);
+                });
+
         this.schemaUpdatedSubscription =
-            this.messageBus.of(SchemaUpdated)
+            this.ctx.bus.of(SchemaUpdated)
                 .subscribe(m => {
                     this.updateSchemas(this.schemas.replaceBy('id', m.schema));
                 });
 
         this.schemaDeletedSubscription =
-            this.messageBus.of(SchemaDeleted)
+            this.ctx.bus.of(SchemaDeleted)
                 .subscribe(m => {
                     this.updateSchemas(this.schemas.filter(s => s.id !== m.schema.id));
                 });
@@ -91,13 +99,18 @@ export class SchemasPageComponent extends AppComponentBase implements OnDestroy,
         this.load();
     }
 
+    public createSchema(importing: any) {
+        this.import = importing;
+
+        this.addSchemaDialog.show();
+    }
+
     private load() {
-        this.appNameOnce()
-            .switchMap(app => this.schemasService.getSchemas(app).retry(2))
+        this.schemasService.getSchemas(this.ctx.appName)
             .subscribe(dtos => {
                 this.updateSchemas(ImmutableArray.of(dtos));
             }, error => {
-                this.notifyError(error);
+                this.ctx.notifyError(error);
             });
     }
 
@@ -106,10 +119,12 @@ export class SchemasPageComponent extends AppComponentBase implements OnDestroy,
         this.emitSchemaCreated(schema);
 
         this.addSchemaDialog.hide();
+
+        this.router.navigate([ schema.name ], { relativeTo: this.ctx.route });
     }
 
     private emitSchemaCreated(schema: SchemaDto) {
-        this.messageBus.emit(new SchemaCreated(schema));
+        this.ctx.bus.emit(new SchemaCreated(schema));
     }
 
     private updateSchemas(schemas: ImmutableArray<SchemaDto>, query?: string) {

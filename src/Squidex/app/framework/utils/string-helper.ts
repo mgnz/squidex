@@ -2,11 +2,11 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 export module StringHelper {
-    export function firstNonEmpty(...values: string[]) {
+    export function firstNonEmpty(...values: (string | undefined | null)[]) {
         for (let value of values) {
             if (value) {
                 value = value.trim();

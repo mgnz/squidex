@@ -120,11 +120,11 @@
 
         a {
             color: $color-dark-foreground;
-        }
 
-        a,
-        a:hover {
-            text-decoration: underline;
+            &,
+            &:hover {
+                text-decoration: underline;
+            }
         }
 
         &-success {
@@ -267,5 +267,53 @@
                 background: $color-dark1-active-background;
             }
         }
+    }
+}
+
+//
+// Grid with footer and header
+//
+.grid {
+    & {
+        @include flex-box;
+        @include flex-direction(column);
+        overflow: hidden;
+        padding: 0;
+    }
+
+    .grid-content,
+    .grid-header,
+    .grid-footer {
+        padding: 0 $panel-padding;
+    }
+
+    .grid-content {
+        @include flex-grow(1);
+        padding-top: .5rem;
+        padding-bottom: .5rem;
+        overflow-y: scroll;
+    }
+
+    .grid-header {
+        & {
+            border: 0;
+            border-bottom: 2px solid $color-border;
+        }
+
+        th {
+            padding: .7rem;
+        }
+
+        .table-items {
+            margin: 0;
+        }
+    }
+
+    .grid-footer {
+        border-top: 2px solid $color-border;
+    }
+
+    .pagination {
+        margin: .25rem 0;
     }
 }

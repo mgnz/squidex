@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  FileExtensions.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -34,6 +33,11 @@ namespace Squidex.Infrastructure
             {
                 return "blob";
             }
+        }
+
+        public static string ToReadableSize(this int value)
+        {
+            return ToReadableSize((long)value);
         }
 
         public static string ToReadableSize(this long value)

@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  LanguageTests.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -40,18 +39,6 @@ namespace Squidex.Infrastructure
         public void Should_provide_all_languages()
         {
             Assert.True(Language.AllLanguages.Count() > 100);
-        }
-
-        [Fact]
-        public void Should_serialize_and_deserialize_null_language()
-        {
-            JsonHelper.SerializeAndDeserialize<Language>(null, new LanguageConverter());
-        }
-
-        [Fact]
-        public void Should_serialize_and_deserialize_valid_language()
-        {
-            Language.DE.SerializeAndDeserialize(new LanguageConverter());
         }
 
         [Fact]
@@ -109,6 +96,18 @@ namespace Squidex.Infrastructure
         }
 
         [Theory]
+        [InlineData("en-US", "en")]
+        [InlineData("en-GB", "en")]
+        [InlineData("EN-US", "en")]
+        [InlineData("EN-GB", "en")]
+        public void Should_parse_lanuages_from_culture(string input, string languageCode)
+        {
+            var language = Language.ParseOrNull(input);
+
+            Assert.Equal(language, Language.GetLanguage(languageCode));
+        }
+
+        [Theory]
         [InlineData("")]
         [InlineData(" ")]
         [InlineData("xx")]
@@ -119,6 +118,22 @@ namespace Squidex.Infrastructure
             var language = Language.ParseOrNull(input);
 
             Assert.Null(language);
+        }
+
+        [Fact]
+        public void Should_serialize_and_deserialize_null_language()
+        {
+            Language value = null;
+
+            value.SerializeAndDeserialize(new LanguageConverter());
+        }
+
+        [Fact]
+        public void Should_serialize_and_deserialize_valid_language()
+        {
+            var value = Language.DE;
+
+            value.SerializeAndDeserialize(new LanguageConverter());
         }
     }
 }

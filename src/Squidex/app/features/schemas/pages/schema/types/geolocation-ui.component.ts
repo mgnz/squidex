@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Component, Input, OnInit } from '@angular/core';
@@ -23,7 +23,7 @@ export class GeolocationUIComponent implements OnInit {
     public properties: GeolocationFieldPropertiesDto;
 
     public ngOnInit() {
-        this.editForm.addControl('editor',
+        this.editForm.setControl('editor',
             new FormControl(this.properties.editor, [
                 Validators.required
             ]));

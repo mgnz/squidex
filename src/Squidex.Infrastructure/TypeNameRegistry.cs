@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  TypeNameRegistry.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -17,20 +16,6 @@ namespace Squidex.Infrastructure
         private readonly Dictionary<Type, string> namesByType = new Dictionary<Type, string>();
         private readonly Dictionary<string, Type> typesByName = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
 
-        public TypeNameRegistry Map(Type type)
-        {
-            Guard.NotNull(type, nameof(type));
-
-            var typeNameAttribute = type.GetTypeInfo().GetCustomAttribute<TypeNameAttribute>();
-
-            if (typeNameAttribute != null)
-            {
-                Map(type, typeNameAttribute.TypeName);
-            }
-
-            return this;
-        }
-
         public TypeNameRegistry MapObsolete(Type type, string name)
         {
             Guard.NotNull(type, nameof(type));
@@ -38,19 +23,28 @@ namespace Squidex.Infrastructure
 
             lock (namesByType)
             {
-                try
+                if (typesByName.TryGetValue(name, out var existingType) && existingType != type)
                 {
-                    typesByName.Add(name, type);
-                }
-                catch (ArgumentException)
-                {
-                    if (typesByName[name] != type)
-                    {
-                        var message = $"The name '{name}' is already registered with type '{typesByName[name]}'";
+                    var message = $"The name '{name}' is already registered with type '{typesByName[name]}'";
 
-                        throw new ArgumentException(message, nameof(type));
-                    }
+                    throw new ArgumentException(message, nameof(type));
                 }
+
+                typesByName[name] = type;
+            }
+
+            return this;
+        }
+
+        public TypeNameRegistry Map(Type type)
+        {
+            Guard.NotNull(type, nameof(type));
+
+            var typeNameAttribute = type.GetTypeInfo().GetCustomAttribute<TypeNameAttribute>();
+
+            if (!string.IsNullOrWhiteSpace(typeNameAttribute?.TypeName))
+            {
+                Map(type, typeNameAttribute.TypeName);
             }
 
             return this;
@@ -63,47 +57,35 @@ namespace Squidex.Infrastructure
 
             lock (namesByType)
             {
-                try
+                if (namesByType.TryGetValue(type, out var existingName) && existingName != name)
                 {
-                    namesByType.Add(type, name);
-                }
-                catch (ArgumentException)
-                {
-                    if (namesByType[type] != name)
-                    {
-                        var message = $"The type '{type}' is already registered with name '{namesByType[type]}'";
+                    var message = $"The type '{type}' is already registered with name '{namesByType[type]}'";
 
-                        throw new ArgumentException(message, nameof(type));
-                    }
+                    throw new ArgumentException(message, nameof(type));
                 }
 
-                try
-                {
-                    typesByName.Add(name, type);
-                }
-                catch (ArgumentException)
-                {
-                    if (typesByName[name] != type)
-                    {
-                        var message = $"The name '{name}' is already registered with type '{typesByName[name]}'";
+                namesByType[type] = name;
 
-                        throw new ArgumentException(message, nameof(type));
-                    }
+                if (typesByName.TryGetValue(name, out var existingType) && existingType != type)
+                {
+                    var message = $"The name '{name}' is already registered with type '{typesByName[name]}'";
+
+                    throw new ArgumentException(message, nameof(type));
                 }
+
+                typesByName[name] = type;
             }
 
             return this;
         }
 
-        public TypeNameRegistry Map(Assembly assembly)
+        public TypeNameRegistry MapUnmapped(Assembly assembly)
         {
             foreach (var type in assembly.GetTypes())
             {
-                var typeNameAttribute = type.GetTypeInfo().GetCustomAttribute<TypeNameAttribute>();
-
-                if (!string.IsNullOrWhiteSpace(typeNameAttribute?.TypeName))
+                if (!namesByType.ContainsKey(type))
                 {
-                    Map(type, typeNameAttribute.TypeName);
+                    Map(type);
                 }
             }
 

@@ -1,15 +1,14 @@
 ﻿// ==========================================================================
-//  IConsole.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 namespace Squidex.Infrastructure.Log.Internal
 {
     public interface IConsole
     {
-        void WriteLine(bool isError, string message);
+        void WriteLine(int color, string message);
     }
 }

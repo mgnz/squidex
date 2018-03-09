@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  AnsiLogConsole.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -19,9 +18,9 @@ namespace Squidex.Infrastructure.Log.Internal
             this.logToStdError = logToStdError;
         }
 
-        public void WriteLine(bool isError, string message)
+        public void WriteLine(int color, string message)
         {
-            if (isError && logToStdError)
+            if (color != 0 && logToStdError)
             {
                 Console.Error.WriteLine(message);
             }

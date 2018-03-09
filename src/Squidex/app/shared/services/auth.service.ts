@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Injectable } from '@angular/core';
@@ -35,7 +35,7 @@ export class Profile {
     }
 
     public get isExpired(): boolean {
-        return this.user.expired;
+        return this.user.expired || false;
     }
 
     public get authToken(): string {
@@ -79,8 +79,8 @@ export class AuthService {
                    response_type: 'id_token token',
                     redirect_uri: apiUrl.buildUrl('login;'),
         post_logout_redirect_uri: apiUrl.buildUrl('logout'),
-             silent_redirect_uri: apiUrl.buildUrl('identity-server/client-callback-silent/'),
-              popup_redirect_uri: apiUrl.buildUrl('identity-server/client-callback-popup/'),
+             silent_redirect_uri: apiUrl.buildUrl('client-callback-silent'),
+              popup_redirect_uri: apiUrl.buildUrl('client-callback-popup'),
                        authority: apiUrl.buildUrl('identity-server/'),
                        userStore: new WebStorageStateStore({ store: window.localStorage || window.sessionStorage }),
             automaticSilentRenew: true

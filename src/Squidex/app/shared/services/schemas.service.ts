@@ -2,10 +2,10 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ValidatorFn, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
@@ -16,8 +16,8 @@ import {
     AnalyticsService,
     ApiUrlConfig,
     DateTime,
-    LocalCacheService,
     HTTP,
+    StringHelper,
     ValidatorsEx,
     Version,
     Versioned
@@ -35,18 +35,20 @@ export const fieldTypes: string[] = [
     'Tags'
 ];
 
+export const fieldInvariant = 'iv';
+
 export function createProperties(fieldType: string, values: Object | null = null): FieldPropertiesDto {
     let properties: FieldPropertiesDto;
 
     switch (fieldType) {
         case 'Number':
-            properties = new NumberFieldPropertiesDto(null, null, null, false, false, 'Input');
+            properties = new NumberFieldPropertiesDto(null, null, null, false, false, false, 'Input');
             break;
         case 'String':
-            properties = new StringFieldPropertiesDto(null, null, null, false, false, 'Input');
+            properties = new StringFieldPropertiesDto(null, null, null, false, false, false, 'Input');
             break;
         case 'Boolean':
-            properties = new BooleanFieldPropertiesDto(null, null, null, false, false, 'Checkbox');
+            properties = new BooleanFieldPropertiesDto(null, null, null, false, false, false, 'Checkbox');
             break;
         case 'DateTime':
             properties = new DateTimeFieldPropertiesDto(null, null, null, false, false, 'DateTime');
@@ -78,6 +80,8 @@ export function createProperties(fieldType: string, values: Object | null = null
 }
 
 export class SchemaDto {
+    public readonly displayName = StringHelper.firstNonEmpty(this.properties.label, this.name);
+
     constructor(
         public readonly id: string,
         public readonly name: string,
@@ -275,6 +279,11 @@ export class SchemaDetailsDto extends SchemaDto {
 }
 
 export class FieldDto {
+    public readonly displayName = StringHelper.firstNonEmpty(this.properties.label, this.name);
+    public readonly displayPlaceholder = this.properties.placeholder || '';
+
+    public readonly isLocalizable = this.partitioning !== 'invariant';
+
     constructor(
         public readonly fieldId: number,
         public readonly name: string,
@@ -317,6 +326,10 @@ export class FieldDto {
     public createValidators(isOptional: boolean): ValidatorFn[] {
         return this.properties.createValidators(isOptional);
     }
+
+    public defaultValue(): any {
+        return this.properties.getDefaultValue();
+    }
 }
 
 export abstract class FieldPropertiesDto {
@@ -333,12 +346,17 @@ export abstract class FieldPropertiesDto {
     public abstract formatValue(value: any): string;
 
     public abstract createValidators(isOptional: boolean): ValidatorFn[];
+
+    public getDefaultValue(): any {
+        return null;
+    }
 }
 
 export class StringFieldPropertiesDto extends FieldPropertiesDto {
     constructor(label: string | null, hints: string | null, placeholder: string | null,
         isRequired: boolean,
         isListField: boolean,
+        public readonly inlineEditable: boolean,
         public readonly editor: string,
         public readonly defaultValue?: string,
         public readonly pattern?: string,
@@ -378,10 +396,20 @@ export class StringFieldPropertiesDto extends FieldPropertiesDto {
         }
 
         if (this.allowedValues && this.allowedValues.length > 0) {
-            validators.push(ValidatorsEx.validValues(this.allowedValues));
+            const values: (string | null)[] = this.allowedValues;
+
+            if (this.isRequired && !isOptional) {
+                validators.push(ValidatorsEx.validValues(values));
+            } else {
+                validators.push(ValidatorsEx.validValues(values.concat([null])));
+            }
         }
 
         return validators;
+    }
+
+    public getDefaultValue(): any {
+        return this.defaultValue;
     }
 }
 
@@ -389,6 +417,7 @@ export class NumberFieldPropertiesDto extends FieldPropertiesDto {
     constructor(label: string | null, hints: string | null, placeholder: string | null,
         isRequired: boolean,
         isListField: boolean,
+        public readonly inlineEditable: boolean,
         public readonly editor: string,
         public readonly defaultValue?: number,
         public readonly maxValue?: number,
@@ -422,10 +451,20 @@ export class NumberFieldPropertiesDto extends FieldPropertiesDto {
         }
 
         if (this.allowedValues && this.allowedValues.length > 0) {
-            validators.push(ValidatorsEx.validValues(this.allowedValues));
+            const values: (number | null)[] = this.allowedValues;
+
+            if (this.isRequired && !isOptional) {
+                validators.push(ValidatorsEx.validValues(values));
+            } else {
+                validators.push(ValidatorsEx.validValues(values.concat([null])));
+            }
         }
 
         return validators;
+    }
+
+    public getDefaultValue(): any {
+        return this.defaultValue;
     }
 }
 
@@ -451,9 +490,9 @@ export class DateTimeFieldPropertiesDto extends FieldPropertiesDto {
             const parsed = DateTime.parseISO_UTC(value);
 
             if (this.editor === 'Date') {
-                return parsed.toStringFormat('YYYY-MM-DD');
+                return parsed.toUTCStringFormat('YYYY-MM-DD');
             } else {
-                return parsed.toStringFormat('YYYY-MM-DD HH:mm:ss');
+                return parsed.toUTCStringFormat('YYYY-MM-DD HH:mm:ss');
             }
         } catch (ex) {
             return value;
@@ -469,12 +508,25 @@ export class DateTimeFieldPropertiesDto extends FieldPropertiesDto {
 
         return validators;
     }
+
+    public getDefaultValue(now?: DateTime): any {
+        now = now || DateTime.now();
+
+        if (this.calculatedDefaultValue === 'Now') {
+            return now.toUTCStringFormat('YYYY-MM-DDTHH:mm:ss') + 'Z';
+        } else if (this.calculatedDefaultValue === 'Today') {
+            return now.toUTCStringFormat('YYYY-MM-DD');
+        } else {
+            return this.defaultValue;
+        }
+    }
 }
 
 export class BooleanFieldPropertiesDto extends FieldPropertiesDto {
     constructor(label: string | null, hints: string | null, placeholder: string | null,
         isRequired: boolean,
         isListField: boolean,
+        public readonly inlineEditable: boolean,
         public readonly editor: string,
         public readonly defaultValue?: boolean
     ) {
@@ -486,7 +538,7 @@ export class BooleanFieldPropertiesDto extends FieldPropertiesDto {
             return '';
         }
 
-        return value ? '✔' : '-';
+        return value ? 'Yes' : 'No';
     }
 
     public createValidators(isOptional: boolean): ValidatorFn[] {
@@ -497,6 +549,10 @@ export class BooleanFieldPropertiesDto extends FieldPropertiesDto {
         }
 
         return validators;
+    }
+
+    public getDefaultValue(): any {
+        return this.defaultValue;
     }
 }
 
@@ -575,7 +631,17 @@ export class AssetsFieldPropertiesDto extends FieldPropertiesDto {
         isRequired: boolean,
         isListField: boolean,
         public readonly minItems?: number,
-        public readonly maxItems?: number
+        public readonly maxItems?: number,
+        public readonly minSize?: number,
+        public readonly maxSize?: number,
+        public readonly allowedExtensions?: string[],
+        public readonly mustBeImage?: boolean,
+        public readonly minWidth?: number,
+        public readonly maxWidth?: number,
+        public readonly minHeight?: number,
+        public readonly maxHeight?: number,
+        public readonly aspectWidth?: number,
+        public readonly aspectHeight?: number
     ) {
         super('Assets', label, hints, placeholder, isRequired, isListField);
     }
@@ -736,8 +802,7 @@ export class SchemasService {
     constructor(
         private readonly http: HttpClient,
         private readonly apiUrl: ApiUrlConfig,
-        private readonly analytics: AnalyticsService,
-        private readonly localCache: LocalCacheService
+        private readonly analytics: AnalyticsService
     ) {
     }
 
@@ -808,17 +873,6 @@ export class SchemasService {
                         body.scriptDelete,
                         body.scriptChange);
                 })
-                .catch(error => {
-                    if (error instanceof HttpErrorResponse && error.status === 404) {
-                        const cached = this.localCache.get(`schema.${appName}.${id}`);
-
-                        if (cached) {
-                            return Observable.of(cached);
-                        }
-                    }
-
-                    return Observable.throw(error);
-                })
                 .pretifyError('Failed to load schema. Please reload.');
     }
 
@@ -850,9 +904,6 @@ export class SchemasService {
                 })
                 .do(schema => {
                     this.analytics.trackEvent('Schema', 'Created', appName);
-
-                    this.localCache.set(`schema.${appName}.${schema.id}`, schema, 5000);
-                    this.localCache.set(`schema.${appName}.${schema.name}`, schema, 5000);
                 })
                 .pretifyError('Failed to create schema. Please reload.');
     }
@@ -885,9 +936,6 @@ export class SchemasService {
         const url = this.apiUrl.buildUrl(`api/apps/${appName}/schemas/${schemaName}`);
 
         return HTTP.deleteVersioned(this.http, url, version)
-                .do(() => {
-                    this.localCache.remove(`schema.${appName}.${schemaName}`);
-                })
                 .do(() => {
                     this.analytics.trackEvent('Schema', 'Deleted', appName);
                 })

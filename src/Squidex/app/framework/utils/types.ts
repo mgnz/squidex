@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 export module Types {
@@ -28,7 +28,7 @@ export module Types {
 
     export function isBoolean(value: any): boolean {
         return typeof value === 'boolean';
-    };
+    }
 
     export function isNull(value: any): boolean {
         return value === null;

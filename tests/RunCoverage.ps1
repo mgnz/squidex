@@ -1,8 +1,7 @@
 Param(
 	[switch]$infrastructure,
 	[switch]$appsCore,
-	[switch]$appsRead,
-	[switch]$appsWrite,
+	[switch]$appsEntities,
 	[switch]$users,
 	[switch]$all
 )
@@ -26,7 +25,7 @@ if ($all -Or $infrastructure) {
 	-register:user `
 	-target:"C:\Program Files\dotnet\dotnet.exe" `
 	-targetargs:"test $folderWorking\Squidex.Infrastructure.Tests\Squidex.Infrastructure.Tests.csproj" `
-	-filter:"+[Squidex*]*" `
+	-filter:"+[Squidex.Infrastructure*]* -[Squidex.Infrastructure*]*CodeGen*" `
 	-skipautoprops `
 	-output:"$folderWorking\$folderReports\Infrastructure.xml" `
 	-oldStyle
@@ -37,31 +36,20 @@ if ($all -Or $appsCore) {
 	-register:user `
 	-target:"C:\Program Files\dotnet\dotnet.exe" `
 	-targetargs:"test $folderWorking\Squidex.Domain.Apps.Core.Tests\Squidex.Domain.Apps.Core.Tests.csproj" `
-	-filter:"+[Squidex*]*" `
+	-filter:"+[Squidex.Domain.Apps.Core*]*" `
 	-skipautoprops `
 	-output:"$folderWorking\$folderReports\Core.xml" `
 	-oldStyle
 }
 
-if ($all -Or $appsRead) {
+if ($all -Or $appsEntities) {
 	&"$folderHome\.nuget\packages\OpenCover\4.6.519\tools\OpenCover.Console.exe" `
 	-register:user `
 	-target:"C:\Program Files\dotnet\dotnet.exe" `
-	-targetargs:"test $folderWorking\Squidex.Domain.Apps.Read.Tests\Squidex.Domain.Apps.Read.Tests.csproj" `
-	-filter:"+[Squidex*]*" `
+	-targetargs:"test $folderWorking\Squidex.Domain.Apps.Entities.Tests\Squidex.Domain.Apps.Entities.Tests.csproj" `
+	-filter:"+[Squidex.Domain.Apps.Entities*]*" `
 	-skipautoprops `
-	-output:"$folderWorking\$folderReports\Read.xml" `
-	-oldStyle
-}
-
-if ($all -Or $appsWrite) {
-	&"$folderHome\.nuget\packages\OpenCover\4.6.519\tools\OpenCover.Console.exe" `
-	-register:user `
-	-target:"C:\Program Files\dotnet\dotnet.exe" `
-	-targetargs:"test $folderWorking\Squidex.Domain.Apps.Write.Tests\Squidex.Domain.Apps.Write.Tests.csproj" `
-	-filter:"+[Squidex*]*" `
-	-skipautoprops `
-	-output:"$folderWorking\$folderReports\Write.xml" `
+	-output:"$folderWorking\$folderReports\Entities.xml" `
 	-oldStyle
 }
 
@@ -70,12 +58,12 @@ if ($all -Or $users) {
 	-register:user `
 	-target:"C:\Program Files\dotnet\dotnet.exe" `
 	-targetargs:"test $folderWorking\Squidex.Domain.Users.Tests\Squidex.Domain.Users.Tests.csproj" `
-	-filter:"+[Squidex*]*" `
+	-filter:"+[Squidex.Domain.Users*]*" `
 	-skipautoprops `
 	-output:"$folderWorking\$folderReports\Users.xml" `
 	-oldStyle
 }
 
-&"$folderHome\.nuget\packages\ReportGenerator\3.0.1\tools\ReportGenerator.exe" `
+&"$folderHome\.nuget\packages\ReportGenerator\3.1.1\tools\ReportGenerator.exe" `
 -reports:"$folderWorking\$folderReports\*.xml" `
 -targetdir:"$folderWorking\$folderReports\Output"

@@ -1,18 +1,20 @@
 ﻿// ==========================================================================
-//  ValidationException.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
 
 namespace Squidex.Infrastructure
 {
-    public class ValidationException : Exception
+    [Serializable]
+    public class ValidationException : DomainException
     {
         private static readonly List<ValidationError> FallbackErrors = new List<ValidationError>();
         private readonly IReadOnlyList<ValidationError> errors;
@@ -22,33 +24,70 @@ namespace Squidex.Infrastructure
             get { return errors; }
         }
 
-        public ValidationException(string message, params ValidationError[] errors)
-            : base(message)
+        public string Summary { get; }
+
+        public ValidationException(string summary, params ValidationError[] errors)
+            : this(summary, null, errors?.ToList())
         {
-            this.errors = errors != null ? errors.ToList() : FallbackErrors;
         }
 
-        public ValidationException(string message, IReadOnlyList<ValidationError> errors)
-            : base(message)
+        public ValidationException(string summary, IReadOnlyList<ValidationError> errors)
+            : this(summary, null, errors)
         {
             this.errors = errors ?? FallbackErrors;
         }
 
-        public ValidationException(string message, Exception inner, params ValidationError[] errors)
-            : base(message, inner)
+        public ValidationException(string summary, Exception inner, params ValidationError[] errors)
+            : this(summary, null, errors?.ToList())
         {
-            this.errors = errors != null ? errors.ToList() : FallbackErrors;
         }
 
-        public ValidationException(string message, Exception inner, IReadOnlyList<ValidationError> errors)
-            : base(message, inner)
+        public ValidationException(string summary, Exception inner, IReadOnlyList<ValidationError> errors)
+            : base(FormatMessage(summary, errors), inner)
         {
+            Summary = summary;
+
             this.errors = errors ?? FallbackErrors;
         }
 
-        public override string ToString()
+        protected ValidationException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
         {
-            return string.Join(" ", Enumerable.Repeat(Message, 1).Union(Errors.Select(x => x.Message)));
+        }
+
+        private static string FormatMessage(string summary, IReadOnlyList<ValidationError> errors)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append(summary.TrimEnd(' ', '.', ':'));
+
+            if (errors?.Count > 0)
+            {
+                sb.Append(": ");
+
+                for (var i = 0; i < errors.Count; i++)
+                {
+                    var error = errors[i].Message;
+
+                    sb.Append(error);
+
+                    if (!error.EndsWith(".", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sb.Append(".");
+                    }
+
+                    if (i < errors.Count - 1)
+                    {
+                        sb.Append(" ");
+                    }
+                }
+            }
+            else
+            {
+                sb.Append(".");
+            }
+
+            return sb.ToString();
         }
     }
 }

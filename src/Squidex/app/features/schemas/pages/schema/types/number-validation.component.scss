@@ -1,7 +1,7 @@
 @import '_vars';
 @import '_mixins';
 
-.minlength {
+.minmax {
     &-col {
         position: relative;
     }
@@ -9,8 +9,4 @@
     &-label {
         @include absolute(0, -2rem, auto, auto);
     }
-}
-
-.form-check-input {
-    margin: 0;
 }

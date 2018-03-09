@@ -1,6 +1,6 @@
-<sqx-title message="{app} | Schemas" parameter1="app" value1="{{appName() | async}}"></sqx-title>
+<sqx-title message="{app} | Schemas" parameter1="app" [value1]="ctx.appName"></sqx-title>
 
-<sqx-panel theme="dark" panelWidth="30rem">
+<sqx-panel theme="dark" desiredWidth="30rem">
     <div class="panel-header">
         <div class="panel-title-row">
             <h3 class="panel-title">Schemas</h3>
@@ -14,7 +14,7 @@
             <sqx-shortcut keys="ctrl+shift+g" (trigger)="addSchemaDialog.show()"></sqx-shortcut>
             <sqx-shortcut keys="ctrl+shift+f" (trigger)="inputFind.focus()"></sqx-shortcut>
 
-            <button class="btn btn-success subheader-button" (click)="addSchemaDialog.show()" title="New Schema (CTRL + SHIFT + G)">
+            <button class="btn btn-success subheader-button" (click)="createSchema(null)" title="New Schema (CTRL + SHIFT + G)">
                 <i class="icon-plus"></i>          
             </button>
             
@@ -33,7 +33,7 @@
                     <a class="nav-link" [routerLink]="[schema.name]" routerLinkActive="active">
                         <div class="row">
                             <div class="col col-4">
-                                <span class="schema-name">{{schema | sqxDisplayName:'properties.label':'name'}}</span> 
+                                <span class="schema-name">{{schema.displayName}}</span> 
                             </div>
                             <div class="col col-4">
                                 <span class="schema-user">
@@ -58,7 +58,8 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Create Schema</h4>
+                <h4 class="modal-title" *ngIf="import">Clone Schema</h4>
+                <h4 class="modal-title" *ngIf="!import">Create Schema</h4>
 
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" (click)="addSchemaDialog.hide()">
                     <span aria-hidden="true">&times;</span>
@@ -66,7 +67,11 @@
             </div>
 
             <div class="modal-body">
-                <sqx-schema-form [appName]="appName() | async" (created)="onSchemaCreated($event)" (cancelled)="addSchemaDialog.hide()"></sqx-schema-form>
+                <sqx-schema-form
+                    [import]="import"
+                    (created)="onSchemaCreated($event)" 
+                    (cancelled)="addSchemaDialog.hide()">
+                </sqx-schema-form>
             </div>
         </div>
     </div>

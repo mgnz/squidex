@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  IPubSub.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -12,8 +11,8 @@ namespace Squidex.Infrastructure
 {
     public interface IPubSub
     {
-        void Publish(string channelName, string token, bool notifySelf);
+        void Publish<T>(T value, bool notifySelf);
 
-        IDisposable Subscribe(string channelName, Action<string> handler);
+        IDisposable Subscribe<T>(Action<T> handler);
     }
 }

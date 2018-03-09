@@ -1,21 +1,19 @@
 ﻿// ==========================================================================
-//  MustBeAppDeveloperAttribute.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using Microsoft.AspNetCore.Authorization;
-using Squidex.Shared.Identity;
+using Squidex.Domain.Apps.Core.Apps;
 
 namespace Squidex.Pipeline
 {
-    public sealed class MustBeAppDeveloperAttribute : AuthorizeAttribute
+    public sealed class MustBeAppDeveloperAttribute : AppPermissionAttribute
     {
         public MustBeAppDeveloperAttribute()
+            : base(AppPermission.Developer)
         {
-            Roles = SquidexRoles.AppDeveloper;
         }
     }
 }

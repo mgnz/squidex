@@ -2,45 +2,44 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 
 import {
     ContentCreated,
-    ContentPublished,
     ContentRemoved,
-    ContentUnpublished,
+    ContentStatusChanged,
     ContentUpdated
 } from './../messages';
 
 import {
     allData,
-    AppComponentBase,
+    AppContext,
     AppLanguageDto,
-    AppsStoreService,
-    AuthService,
     ContentDto,
     ContentsService,
-    DialogService,
+    DateTime,
     FieldDto,
     ImmutableArray,
-    MessageBus,
     ModalView,
     Pager,
-    SchemaDetailsDto
+    SchemaDetailsDto,
+    Versioned
 } from 'shared';
 
 @Component({
     selector: 'sqx-contents-page',
     styleUrls: ['./contents-page.component.scss'],
-    templateUrl: './contents-page.component.html'
+    templateUrl: './contents-page.component.html',
+    providers: [
+        AppContext
+    ]
 })
-export class ContentsPageComponent extends AppComponentBase implements OnDestroy, OnInit {
+export class ContentsPageComponent implements OnDestroy, OnInit {
     private contentCreatedSubscription: Subscription;
     private contentUpdatedSubscription: Subscription;
 
@@ -54,21 +53,29 @@ export class ContentsPageComponent extends AppComponentBase implements OnDestroy
     public contentsQuery = '';
     public contentsPager = new Pager(0);
 
+    public dueTimeDialog = new ModalView();
+    public dueTime: string | null = '';
+    public dueTimeFunction: Function | null;
+    public dueTimeAction: string | null = '';
+    public dueTimeMode = 'Immediately';
+
+    public selectedItems:  { [id: string]: boolean; } = {};
+    public selectionCount = 0;
+
+    public canUnpublish = false;
+    public canPublish = false;
+
     public languages: AppLanguageDto[] = [];
     public languageSelected: AppLanguageDto;
     public languageParameter: string;
 
+    public isAllSelected = false;
     public isReadOnly = false;
     public isArchive = false;
 
-    public columnWidth: number;
-
-    constructor(apps: AppsStoreService, dialogs: DialogService, authService: AuthService,
-        private readonly contentsService: ContentsService,
-        private readonly route: ActivatedRoute,
-        private readonly messageBus: MessageBus
+    constructor(public readonly ctx: AppContext,
+        private readonly contentsService: ContentsService
     ) {
-        super(dialogs, apps, authService);
     }
 
     public ngOnDestroy() {
@@ -77,37 +84,40 @@ export class ContentsPageComponent extends AppComponentBase implements OnDestroy
     }
 
     public ngOnInit() {
-        const routeData = allData(this.route);
-
-        this.languages = routeData['appLanguages'];
-
         this.contentCreatedSubscription =
-            this.messageBus.of(ContentCreated)
+            this.ctx.bus.of(ContentCreated)
                 .subscribe(message => {
                     this.contentItems = this.contentItems.pushFront(message.content);
                     this.contentsPager = this.contentsPager.incrementCount();
                 });
 
         this.contentUpdatedSubscription =
-            this.messageBus.of(ContentUpdated)
+            this.ctx.bus.of(ContentUpdated)
                 .subscribe(message => {
                     this.contentItems = this.contentItems.replaceBy('id', message.content, (o, n) => o.update(n.data, n.lastModifiedBy, n.version, n.lastModified));
                 });
 
-        this.route.params.map(p => <string> p['language'])
+        const routeData = allData(this.ctx.route);
+
+        this.languages = routeData.appLanguages;
+
+        this.ctx.route.data.map(p => p.isReadOnly)
+            .subscribe(isReadOnly => {
+                this.isReadOnly = isReadOnly;
+            });
+
+        this.ctx.route.params.map(p => p.language)
             .subscribe(language => {
                 this.languageSelected = this.languages.find(l => l.iso2Code === language) || this.languages.find(l => l.isMaster) || this.languages[0];
             });
 
-        this.route.data.map(p => p['schemaOverride'] || p['schema'])
+        this.ctx.route.data.map(d => d.schema)
             .subscribe(schema => {
                 this.schema = schema;
 
                 this.resetContents();
                 this.load();
             });
-
-        this.isReadOnly = routeData['isReadOnly'];
     }
 
     public dropData(content: ContentDto) {
@@ -115,79 +125,148 @@ export class ContentsPageComponent extends AppComponentBase implements OnDestroy
     }
 
     public publishContent(content: ContentDto) {
-        this.appNameOnce()
-            .switchMap(app => this.contentsService.publishContent(app, this.schema.name, content.id, content.version))
-            .subscribe(dto => {
-                content = content.publish(this.userToken, dto.version);
+        this.changeContentItems([content], 'Publish', 'Published', false);
+    }
 
-                this.contentItems = this.contentItems.replaceBy('id', content);
+    public publishSelected(scheduled: boolean) {
+        const contents = this.contentItems.filter(c => c.status !== 'Published' && this.selectedItems[c.id]).values;
 
-                this.emitContentPublished(content);
-            }, error => {
-                this.notifyError(error);
-            });
+        this.changeContentItems(contents, 'Publish', 'Published', false);
     }
 
     public unpublishContent(content: ContentDto) {
-        this.appNameOnce()
-            .switchMap(app => this.contentsService.unpublishContent(app, this.schema.name, content.id, content.version))
-            .subscribe(dto => {
-                content = content.unpublish(this.userToken, dto.version);
+        this.changeContentItems([content], 'Unpublish', 'Draft', false);
+    }
 
-                this.contentItems = this.contentItems.replaceBy('id', content);
+    public unpublishSelected(scheduled: boolean) {
+        const contents = this.contentItems.filter(c => c.status === 'Published' && this.selectedItems[c.id]).values;
 
-                this.emitContentUnpublished(content);
-            }, error => {
-                this.notifyError(error);
-            });
+        this.changeContentItems(contents, 'Unpublish', 'Draft', false);
     }
 
     public archiveContent(content: ContentDto) {
-        this.appNameOnce()
-            .switchMap(app => this.contentsService.archiveContent(app, this.schema.name, content.id, content.version))
-            .subscribe(dto => {
-                content = content.archive(this.userToken, dto.version);
+        this.changeContentItems([content], 'Archive', 'Archived', true);
+    }
 
-                this.removeContent(content);
-            }, error => {
-                this.notifyError(error);
-            });
+    public archiveSelected(scheduled: boolean) {
+        const contents = this.contentItems.filter(c => this.selectedItems[c.id]).values;
+
+        this.changeContentItems(contents, 'Archive', 'Archived', true);
     }
 
     public restoreContent(content: ContentDto) {
-        this.appNameOnce()
-            .switchMap(app => this.contentsService.restoreContent(app, this.schema.name, content.id, content.version))
-            .subscribe(dto => {
-                content = content.restore(this.userToken, dto.version);
+        this.changeContentItems([content], 'Restore', 'Draft', true);
+    }
 
-                this.removeContent(content);
-            }, error => {
-                this.notifyError(error);
+    public restoreSelected(scheduled: boolean) {
+        const contents = this.contentItems.filter(c => this.selectedItems[c.id]).values;
+
+        this.changeContentItems(contents, 'Restore', 'Draft', true);
+    }
+
+    private changeContentItems(contents: ContentDto[], action: string, status: string, reload: boolean) {
+        if (contents.length === 0) {
+            return;
+        }
+
+        this.dueTimeFunction = () => {
+            if (this.dueTime) {
+                reload = false;
+            }
+            Observable.forkJoin(
+                contents
+                    .map(c => this.changeContentItem(c, action, status, this.dueTime, reload)))
+                .finally(() => {
+                    if (reload) {
+                        this.load();
+                    } else {
+                        this.updateSelectionSummary();
+                    }
+                })
+                .subscribe();
+        };
+
+        this.dueTimeAction = action;
+        this.dueTimeDialog.show();
+    }
+
+    private changeContentItem(content: ContentDto, action: string, status: string, dueTime: string | null, reload: boolean): Observable<any> {
+        return this.contentsService.changeContentStatus(this.ctx.appName, this.schema.name, content.id, action, dueTime, content.version)
+            .catch(error => {
+                this.ctx.notifyError(error);
+
+                return Observable.throw(error);
+            })
+            .do(dto => {
+                if (!reload) {
+                    const dt =
+                        dueTime ?
+                            DateTime.parseISO_UTC(dueTime) :
+                            null;
+
+                    content = content.changeStatus(status, dt, this.ctx.userToken, dto.version);
+
+                    this.contentItems = this.contentItems.replaceBy('id', content);
+
+                    this.emitContentStatusChanged(content);
+                }
             });
+    }
+
+    public deleteSelected(content: ContentDto) {
+        Observable.forkJoin(
+            this.contentItems.values.filter(c => this.selectedItems[c.id])
+                .map(c => this.deleteContentItem(c)))
+            .finally(() => {
+                this.load();
+            })
+            .subscribe();
     }
 
     public deleteContent(content: ContentDto) {
-        this.appNameOnce()
-            .switchMap(app => this.contentsService.deleteContent(app, this.schema.name, content.id, content.version))
-            .subscribe(() => {
-                this.removeContent(content);
-            }, error => {
-                this.notifyError(error);
+        this.deleteContentItem(content)
+            .finally(() => {
+                this.load();
+            })
+            .subscribe();
+    }
+
+    public deleteContentItem(content: ContentDto): Observable<any> {
+        return this.contentsService.deleteContent(this.ctx.appName, this.schema.name, content.id, content.version)
+            .do(() => {
+                this.emitContentRemoved(content);
+            })
+            .catch(error => {
+                this.ctx.notifyError(error);
+
+                return Observable.throw(error);
             });
     }
 
+    public onContentSaved(content: ContentDto, update: Versioned<any>) {
+        content = content.update(update.payload, this.ctx.userToken, update.version);
+
+        this.contentItems = this.contentItems.replaceBy('id', content);
+
+        this.emitContentUpdated(content);
+    }
+
     public load(showInfo = false) {
-        this.appNameOnce()
-            .switchMap(app => this.contentsService.getContents(app, this.schema.name, this.contentsPager.pageSize, this.contentsPager.skip, this.contentsQuery, null, this.isArchive))
+        this.contentsService.getContents(this.ctx.appName, this.schema.name, this.contentsPager.pageSize, this.contentsPager.skip, this.contentsQuery, undefined, this.isArchive)
+            .finally(() => {
+                this.selectedItems = {};
+
+                this.updateSelectionSummary();
+            })
             .subscribe(dtos => {
                 this.contentItems = ImmutableArray.of(dtos.items);
                 this.contentsPager = this.contentsPager.setCount(dtos.total);
 
                 if (showInfo) {
-                    this.notifyInfo('Contents reloaded.');
+                    this.ctx.notifyInfo('Contents reloaded.');
                 }
             }, error => {
-                this.notifyError(error);
+                this.ctx.notifyError(error);
             });
     }
 
@@ -221,20 +300,69 @@ export class ContentsPageComponent extends AppComponentBase implements OnDestroy
         this.load();
     }
 
+    public isItemSelected(content: ContentDto): boolean {
+        return !!this.selectedItems[content.id];
+    }
+
+    public selectItem(content: ContentDto, isSelected: boolean) {
+        this.selectedItems[content.id] = isSelected;
+
+        this.updateSelectionSummary();
+    }
+
+    public selectAll(isSelected: boolean) {
+        this.selectedItems = {};
+
+        if (isSelected) {
+            for (let c of this.contentItems.values) {
+                this.selectedItems[c.id] = true;
+            }
+        }
+
+        this.updateSelectionSummary();
+    }
+
+    private updateSelectionSummary() {
+        this.isAllSelected = this.contentItems.length > 0;
+        this.selectionCount = 0;
+        this.canPublish = true;
+        this.canUnpublish = true;
+
+        for (let c of this.contentItems.values) {
+            if (this.selectedItems[c.id]) {
+                this.selectionCount++;
+
+                if (c.status !== 'Published') {
+                    this.canUnpublish = false;
+                }
+
+                if (c.status === 'Published') {
+                    this.canPublish = false;
+                }
+            } else {
+                this.isAllSelected = false;
+            }
+        }
+    }
+
     public selectLanguage(language: AppLanguageDto) {
         this.languageSelected = language;
     }
 
-    private emitContentPublished(content: ContentDto) {
-        this.messageBus.emit(new ContentPublished(content));
+    private emitContentStatusChanged(content: ContentDto) {
+        this.ctx.bus.emit(new ContentStatusChanged(content));
     }
 
-    private emitContentUnpublished(content: ContentDto) {
-        this.messageBus.emit(new ContentUnpublished(content));
+    private emitContentUpdated(content: ContentDto) {
+        this.ctx.bus.emit(new ContentUpdated(content));
     }
 
     private emitContentRemoved(content: ContentDto) {
-        this.messageBus.emit(new ContentRemoved(content));
+        this.ctx.bus.emit(new ContentRemoved(content));
+    }
+
+    public trackBy(content: ContentDto): string {
+        return content.id;
     }
 
     private resetContents() {
@@ -242,15 +370,10 @@ export class ContentsPageComponent extends AppComponentBase implements OnDestroy
         this.contentsQuery = '';
         this.contentsFilter.setValue('');
         this.contentsPager = new Pager(0);
+        this.selectedItems = {};
 
+        this.updateSelectionSummary();
         this.loadFields();
-    }
-
-    private removeContent(content: ContentDto) {
-        this.contentItems = this.contentItems.removeAll(x => x.id === content.id);
-        this.contentsPager = this.contentsPager.decrementCount();
-
-        this.emitContentRemoved(content);
     }
 
     private loadFields() {
@@ -263,12 +386,19 @@ export class ContentsPageComponent extends AppComponentBase implements OnDestroy
         if (this.contentFields.length === 0) {
             this.contentFields = [<any>{}];
         }
+    }
 
-        if (this.contentFields.length > 0) {
-            this.columnWidth = 100 / this.contentFields.length;
-        } else {
-            this.columnWidth = 100;
-        }
+    public confirmStatusChange() {
+        this.dueTimeFunction!();
+
+        this.cancelStatusChange();
+    }
+
+    public cancelStatusChange() {
+        this.dueTimeMode = 'Immediately';
+        this.dueTimeDialog.hide();
+        this.dueTimeFunction = null;
+        this.dueTime = null;
     }
 }
 

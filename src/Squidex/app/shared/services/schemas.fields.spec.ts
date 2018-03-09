@@ -2,8 +2,10 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
+
+import { DateTime } from 'framework';
 
 import {
     AssetsFieldPropertiesDto,
@@ -84,6 +86,10 @@ describe('AssetsField', () => {
     it('should return zero formatting if other type', () => {
         expect(field.formatValue(1)).toBe('0 Assets');
     });
+
+    it('should return null for default properties', () => {
+        expect(field.defaultValue()).toBeNull();
+    });
 });
 
 describe('TagsField', () => {
@@ -104,10 +110,14 @@ describe('TagsField', () => {
     it('should return zero formatting if other type', () => {
         expect(field.formatValue(1)).toBe('');
     });
+
+    it('should return null for default properties', () => {
+        expect(field.defaultValue()).toBeNull();
+    });
 });
 
 describe('BooleanField', () => {
-    const field = createField(new BooleanFieldPropertiesDto(null, null, null, true, false, 'Checkbox'));
+    const field = createField(new BooleanFieldPropertiesDto(null, null, null, true, false, false, 'Checkbox'));
 
     it('should create validators', () => {
         expect(field.createValidators(false).length).toBe(1);
@@ -117,16 +127,23 @@ describe('BooleanField', () => {
         expect(field.formatValue(null)).toBe('');
     });
 
-    it('should format to checkmark if true', () => {
-        expect(field.formatValue(true)).toBe('✔');
+    it('should format to Yes if true', () => {
+        expect(field.formatValue(true)).toBe('Yes');
     });
 
-    it('should format to minus if false', () => {
-        expect(field.formatValue(false)).toBe('-');
+    it('should format to No if false', () => {
+        expect(field.formatValue(false)).toBe('No');
+    });
+
+    it('should return default value for default properties', () => {
+        Object.assign(field.properties, { defaultValue : true });
+
+        expect(field.defaultValue()).toBeTruthy();
     });
 });
 
 describe('DateTimeField', () => {
+    const now = DateTime.parseISO_UTC('2017-10-12T16:30:10Z');
     const field = createField(new DateTimeFieldPropertiesDto(null, null, null, true, false, 'Date'));
 
     it('should create validators', () => {
@@ -147,10 +164,28 @@ describe('DateTimeField', () => {
         expect(dateField.formatValue('2017-12-12T16:00:00Z')).toBe('2017-12-12');
     });
 
-    it('should format to date', () => {
+    it('should format to date time', () => {
         const dateTimeField = createField(new DateTimeFieldPropertiesDto(null, null, null, true, false, 'DateTime'));
 
-        expect(dateTimeField.formatValue('2017-12-12T16:00:00Z').substr(0, 10)).toBe('2017-12-12');
+        expect(dateTimeField.formatValue('2017-12-12T16:00:00Z')).toBe('2017-12-12 16:00:00');
+    });
+
+    it('should return default for DateFieldProperties', () => {
+        Object.assign(field.properties, { defaultValue: '2017-10-12T16:00:00Z' });
+
+        expect(field.defaultValue()).toEqual('2017-10-12T16:00:00Z');
+    });
+
+    it('should return calculated date when Today for DateFieldProperties', () => {
+        Object.assign(field.properties, { calculatedDefaultValue: 'Today' });
+
+        expect((<any>field).properties.getDefaultValue(now)).toEqual('2017-10-12');
+    });
+
+    it('should return calculated date when Now for DateFieldProperties', () => {
+        Object.assign(field.properties, { calculatedDefaultValue: 'Now' });
+
+        expect((<any>field).properties.getDefaultValue(now)).toEqual('2017-10-12T16:30:10Z');
     });
 });
 
@@ -168,6 +203,10 @@ describe('GeolocationField', () => {
     it('should format to latitude and longitude', () => {
         expect(field.formatValue({ latitude: 42, longitude: 3.14 })).toBe('3.14, 42');
     });
+
+    it('should return null for default properties', () => {
+        expect(field.defaultValue()).toBeNull();
+    });
 });
 
 describe('JsonField', () => {
@@ -184,10 +223,14 @@ describe('JsonField', () => {
     it('should format to constant', () => {
         expect(field.formatValue({})).toBe('<Json />');
     });
+
+    it('should return null for default properties', () => {
+        expect(field.defaultValue()).toBeNull();
+    });
 });
 
 describe('NumberField', () => {
-    const field = createField(new NumberFieldPropertiesDto(null, null, null, true, false, 'Input', undefined, 3, 1, [1, 2, 3]));
+    const field = createField(new NumberFieldPropertiesDto(null, null, null, true, false, false, 'Input', undefined, 3, 1, [1, 2, 3]));
 
     it('should create validators', () => {
         expect(field.createValidators(false).length).toBe(4);
@@ -199,6 +242,12 @@ describe('NumberField', () => {
 
     it('should format to number', () => {
         expect(field.formatValue(42)).toBe(42);
+    });
+
+    it('should return default value for default properties', () => {
+        Object.assign(field.properties, { defaultValue: 13 });
+
+        expect(field.defaultValue()).toEqual(13);
     });
 });
 
@@ -220,10 +269,14 @@ describe('ReferencesField', () => {
     it('should return zero formatting if other type', () => {
         expect(field.formatValue(1)).toBe('0 References');
     });
+
+    it('should return null for default properties', () => {
+        expect(field.defaultValue()).toBeNull();
+    });
 });
 
-describe('NumberField', () => {
-    const field = createField(new StringFieldPropertiesDto(null, null, null, true, false, 'Input', undefined, 'pattern', undefined, 3, 1, ['1', '2']));
+describe('StringField', () => {
+    const field = createField(new StringFieldPropertiesDto(null, null, null, true, false, false, 'Input', undefined, 'pattern', undefined, 3, 1, ['1', '2']));
 
     it('should create validators', () => {
         expect(field.createValidators(false).length).toBe(5);
@@ -235,6 +288,12 @@ describe('NumberField', () => {
 
     it('should format to string', () => {
         expect(field.formatValue('hello')).toBe('hello');
+    });
+
+    it('should return default value for default properties', () => {
+        Object.assign(field.properties, { defaultValue: 'MyDefault' });
+
+        expect(field.defaultValue()).toEqual('MyDefault');
     });
 });
 

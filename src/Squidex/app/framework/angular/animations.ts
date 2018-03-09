@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import {
@@ -81,7 +81,7 @@ export function buildFadeAnimation(name = 'fade', timing = '150ms'): AnimationEn
             transition('0 => 1', animate(timing))
         ]
     );
-};
+}
 
 export function buildHeightAnimation(name = 'height', timing = '200ms'): AnimationEntryMetadata {
     return trigger(
@@ -104,7 +104,7 @@ export function buildHeightAnimation(name = 'height', timing = '200ms'): Animati
             transition('0 => 1', animate(timing))
         ]
     );
-};
+}
 
 export const fadeAnimation = buildFadeAnimation();
 export const heightAnimation = buildHeightAnimation();

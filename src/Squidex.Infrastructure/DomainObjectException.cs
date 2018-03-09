@@ -1,15 +1,16 @@
 ﻿// ==========================================================================
-//  DomainObjectException.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
+using System.Runtime.Serialization;
 
 namespace Squidex.Infrastructure
 {
+    [Serializable]
     public class DomainObjectException : Exception
     {
         private readonly string id;
@@ -31,6 +32,11 @@ namespace Squidex.Infrastructure
             this.id = id;
 
             typeName = type?.Name;
+        }
+
+        protected DomainObjectException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
         }
     }
 }

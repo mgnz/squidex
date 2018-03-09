@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  StringExtensionsTests.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System.Collections.Generic;
@@ -23,6 +22,9 @@ namespace Squidex.Infrastructure
         }
 
         [Theory]
+        [InlineData("", "")]
+        [InlineData("m", "M")]
+        [InlineData("m-y", "MY")]
         [InlineData("my", "My")]
         [InlineData("myProperty ", "MyProperty")]
         [InlineData("my property", "MyProperty")]
@@ -34,7 +36,10 @@ namespace Squidex.Infrastructure
         }
 
         [Theory]
+        [InlineData("", "")]
+        [InlineData("M", "m")]
         [InlineData("My", "my")]
+        [InlineData("M-y", "mY")]
         [InlineData("MyProperty ", "myProperty")]
         [InlineData("My property", "myProperty")]
         [InlineData("My_property", "myProperty")]
@@ -52,27 +57,27 @@ namespace Squidex.Infrastructure
         [InlineData("Hello World ", '_', "hello_world")]
         [InlineData("Hello World-", '_', "hello_world")]
         [InlineData("Hello/World_", '_', "hello_world")]
-        public void Should_replace_special_characters_with_sepator_when_simplifying(string input, char separator, string output)
+        public void Should_replace_special_characters_with_sepator_when_slugifying(string input, char separator, string output)
         {
-            Assert.Equal(output, input.Simplify(separator: separator));
+            Assert.Equal(output, input.Slugify(separator: separator));
         }
 
         [Theory]
         [InlineData("ö", "oe")]
         [InlineData("ü", "ue")]
         [InlineData("ä", "ae")]
-        public void Should_replace_multi_char_diacritics_when_simplifying(string input, string output)
+        public void Should_replace_multi_char_diacritics_when_slugifying(string input, string output)
         {
-            Assert.Equal(output, input.Simplify());
+            Assert.Equal(output, input.Slugify());
         }
 
         [Theory]
         [InlineData("ö", "o")]
         [InlineData("ü", "u")]
         [InlineData("ä", "a")]
-        public void Should_not_replace_multi_char_diacritics_when_simplifying(string input, string output)
+        public void Should_not_replace_multi_char_diacritics_when_slugifying(string input, string output)
         {
-            Assert.Equal(output, input.Simplify(singleCharDiactric: true));
+            Assert.Equal(output, input.Slugify(singleCharDiactric: true));
         }
 
         [Theory]
@@ -82,18 +87,18 @@ namespace Squidex.Infrastructure
         [InlineData("fórm", "form")]
         [InlineData("fòrm", "form")]
         [InlineData("fårt", "fart")]
-        public void Should_replace_single_char_diacritics_when_simplifying(string input, string output)
+        public void Should_replace_single_char_diacritics_when_slugifying(string input, string output)
         {
-            Assert.Equal(output, input.Simplify());
+            Assert.Equal(output, input.Slugify());
         }
 
         [Theory]
         [InlineData("Hello my&World ", '_', "hello_my&world")]
         [InlineData("Hello my&World-", '_', "hello_my&world")]
         [InlineData("Hello my/World_", '_', "hello_my/world")]
-        public void Should_keep_characters_when_simplifying(string input, char separator, string output)
+        public void Should_keep_characters_when_slugifying(string input, char separator, string output)
         {
-            Assert.Equal(output, input.Simplify(new HashSet<char> { '&', '/' }, false, separator));
+            Assert.Equal(output, input.Slugify(new HashSet<char> { '&', '/' }, false, separator));
         }
 
         [Fact]
@@ -105,9 +110,9 @@ namespace Squidex.Infrastructure
         }
 
         [Theory]
-        [InlineData("http://squidex.io/base/",  "path/to/res", false, "http://squidex.io/base/path/to/res")]
-        [InlineData("http://squidex.io/base/",  "path/to/res", true,  "http://squidex.io/base/path/to/res/")]
-        [InlineData("http://squidex.io/base/", "/path/to/res", true,  "http://squidex.io/base/path/to/res/")]
+        [InlineData("http://squidex.io/base/", "path/to/res", false, "http://squidex.io/base/path/to/res")]
+        [InlineData("http://squidex.io/base/", "path/to/res", true, "http://squidex.io/base/path/to/res/")]
+        [InlineData("http://squidex.io/base/", "/path/to/res", true, "http://squidex.io/base/path/to/res/")]
         public void Should_provide_full_url_without_query_or_fragment(string baseUrl, string path, bool trailingSlash, string output)
         {
             var result = baseUrl.BuildFullUrl(path, trailingSlash);
@@ -117,8 +122,8 @@ namespace Squidex.Infrastructure
 
         [Theory]
         [InlineData("http://squidex.io/base/", "path/to/res?query=1", false, "http://squidex.io/base/path/to/res?query=1")]
-        [InlineData("http://squidex.io/base/", "path/to/res#query=1", true,  "http://squidex.io/base/path/to/res#query=1")]
-        [InlineData("http://squidex.io/base/", "path/to/res;query=1", true,  "http://squidex.io/base/path/to/res;query=1")]
+        [InlineData("http://squidex.io/base/", "path/to/res#query=1", true, "http://squidex.io/base/path/to/res#query=1")]
+        [InlineData("http://squidex.io/base/", "path/to/res;query=1", true, "http://squidex.io/base/path/to/res;query=1")]
         public void Should_provide_full_url_wit_query_or_fragment(string baseUrl, string path, bool trailingSlash, string output)
         {
             var result = baseUrl.BuildFullUrl(path, trailingSlash);

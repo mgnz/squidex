@@ -1,16 +1,17 @@
 ﻿// ==========================================================================
-//  ConfigurationException.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
+using System.Runtime.Serialization;
 
 namespace Squidex.Infrastructure
 {
-    public sealed class ConfigurationException : Exception
+    [Serializable]
+    public class ConfigurationException : Exception
     {
         public ConfigurationException()
         {
@@ -23,6 +24,11 @@ namespace Squidex.Infrastructure
 
         public ConfigurationException(string message, Exception inner)
             : base(message, inner)
+        {
+        }
+
+        protected ConfigurationException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
         {
         }
     }

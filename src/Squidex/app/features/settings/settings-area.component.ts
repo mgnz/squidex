@@ -2,26 +2,23 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Component } from '@angular/core';
 
-import {
-    AppComponentBase,
-    AppsStoreService,
-    AuthService,
-    DialogService
-} from 'shared';
+import { AppContext } from 'shared';
 
 @Component({
     selector: 'sqx-settings-area',
     styleUrls: ['./settings-area.component.scss'],
-    templateUrl: './settings-area.component.html'
+    templateUrl: './settings-area.component.html',
+    providers: [
+        AppContext
+    ]
 })
-export class SettingsAreaComponent extends AppComponentBase {
-    constructor(apps: AppsStoreService, dialogs: DialogService, authService: AuthService
+export class SettingsAreaComponent {
+    constructor(public readonly ctx: AppContext
     ) {
-        super(dialogs, apps, authService);
     }
 }

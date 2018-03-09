@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Observable } from 'rxjs';
@@ -19,20 +19,23 @@ import {
 describe('AppsStoreService', () => {
     const now = DateTime.now();
 
-    const oldApps = [new AppDto('id', 'old-name', 'Owner', now, now)];
-    const newApp =   new AppDto('id', 'new-name', 'Owner', now, now);
+    const oldApps = [
+        new AppDto('id', 'old-name', 'Owner', now, now, 'Free', 'Plan'),
+        new AppDto('id', 'old-name', 'Owner', now, now, 'Free', 'Plan')
+    ];
+    const newApp = new AppDto('id', 'new-name', 'Owner', now, now, 'Free', 'Plan');
 
     let appsService: IMock<AppsService>;
 
     beforeEach(() => {
         appsService = Mock.ofType(AppsService);
-    });
 
-    it('should load automatically', () => {
         appsService.setup(x => x.getApps())
             .returns(() => Observable.of(oldApps))
             .verifiable(Times.once());
+    });
 
+    it('should load automatically', () => {
         const store = new AppsStoreService(appsService.object);
 
         let result1: AppDto[] | null = null;
@@ -53,10 +56,6 @@ describe('AppsStoreService', () => {
     });
 
     it('should add app to cache when created', () => {
-        appsService.setup(x => x.getApps())
-            .returns(() => Observable.of(oldApps))
-            .verifiable(Times.once());
-
         appsService.setup(x => x.postApp(It.isAny()))
             .returns(() => Observable.of(newApp))
             .verifiable(Times.once());
@@ -83,10 +82,6 @@ describe('AppsStoreService', () => {
     });
 
     it('should select app', (done) => {
-        appsService.setup(x => x.getApps())
-            .returns(() => Observable.of(oldApps))
-            .verifiable(Times.once());
-
         const store = new AppsStoreService(appsService.object);
 
         store.selectApp('old-name').subscribe(isSelected => {

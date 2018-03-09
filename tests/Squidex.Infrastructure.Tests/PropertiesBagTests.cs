@@ -1,18 +1,17 @@
 ﻿// ==========================================================================
-//  PropertiesBagTests.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
 using System.Globalization;
 using System.Linq;
 using Microsoft.CSharp.RuntimeBinder;
-using Newtonsoft.Json;
 using NodaTime;
 using Squidex.Infrastructure.Json;
+using Squidex.Infrastructure.TestHelpers;
 using Xunit;
 
 namespace Squidex.Infrastructure
@@ -31,12 +30,7 @@ namespace Squidex.Infrastructure
         [Fact]
         public void Should_serialize_and_deserialize_empty_bag()
         {
-            var serializerSettings = new JsonSerializerSettings();
-
-            serializerSettings.Converters.Add(new PropertiesBagConverter());
-
-            var content = JsonConvert.SerializeObject(bag, serializerSettings);
-            var output = JsonConvert.DeserializeObject<PropertiesBag>(content, serializerSettings);
+            var output = bag.SerializeAndDeserializeAndReturn(new PropertiesBagConverter<PropertiesBag>());
 
             Assert.Equal(bag.Count, output.Count);
         }
@@ -52,19 +46,14 @@ namespace Squidex.Infrastructure
             bag.Set("Key4", true);
             bag.Set("Key5", Guid.NewGuid());
 
-            var serializerSettings = new JsonSerializerSettings();
+            var output = bag.SerializeAndDeserializeAndReturn(new PropertiesBagConverter<PropertiesBag>());
 
-            serializerSettings.Converters.Add(new PropertiesBagConverter());
-
-            var content = JsonConvert.SerializeObject(bag, serializerSettings);
-            var response = JsonConvert.DeserializeObject<PropertiesBag>(content, serializerSettings);
-
-            foreach (var kvp in response.Properties.Take(4))
+            foreach (var kvp in output.Properties.Take(4))
             {
                 Assert.Equal(kvp.Value.RawValue, bag[kvp.Key].RawValue);
             }
 
-            Assert.Equal(bag["Key5"].ToGuid(c), response["Key5"].ToGuid(c));
+            Assert.Equal(bag["Key5"].ToGuid(c), output["Key5"].ToGuid(c));
         }
 
         [Fact]
@@ -96,7 +85,7 @@ namespace Squidex.Infrastructure
             Assert.True(bag.Contains("NewKey"));
 
             Assert.Equal(1, bag.Count);
-            Assert.Equal(123, bag["NewKey"].ToInt32(c));
+            Assert.Equal(123, bag["NewKey"].ToInt64(c));
 
             Assert.False(bag.Contains("OldKey"));
         }
@@ -184,7 +173,7 @@ namespace Squidex.Infrastructure
         {
             bag.Set("Key", "abc");
 
-            Assert.Throws<InvalidCastException>(() => bag["Key"].ToInt32(CultureInfo.InvariantCulture));
+            Assert.Throws<InvalidCastException>(() => bag["Key"].ToInt64(CultureInfo.InvariantCulture));
         }
 
         [Fact]
@@ -357,7 +346,7 @@ namespace Squidex.Infrastructure
 
         private void AssertNumber()
         {
-            AssertInt32(123);
+            AssertInt64(123);
             AssertInt64(123);
             AssertSingle(123);
             AssertDouble(123);
@@ -430,10 +419,10 @@ namespace Squidex.Infrastructure
             Assert.Equal(expected, (long?)dynamicBag.Key);
         }
 
-        private void AssertInt32(int expected)
+        private void AssertInt64(int expected)
         {
-            Assert.Equal(expected, bag["Key"].ToInt32(c));
-            Assert.Equal(expected, bag["Key"].ToNullableInt32(c));
+            Assert.Equal(expected, bag["Key"].ToInt64(c));
+            Assert.Equal(expected, bag["Key"].ToNullableInt64(c));
 
             Assert.Equal(expected, (int)dynamicBag.Key);
             Assert.Equal(expected, (int?)dynamicBag.Key);

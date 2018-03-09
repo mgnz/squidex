@@ -1,6 +1,6 @@
-<sqx-title message="{app} | {schema}" parameter1="app" value1="{{appName() | async}}" parameter2="schema" value2="{{schema.name}}"></sqx-title>
+<sqx-title message="{app} | {schema}" parameter1="app" [value1]="ctx.appName" parameter2="schema" [value2]="schema?.displayName"></sqx-title>
 
-<sqx-panel panelWidth="48rem">
+<sqx-panel desiredWidth="56rem">
     <div class="panel-header">
         <div class="panel-title-row">
             <div class="float-right">
@@ -18,13 +18,18 @@
                 </div>
 
                <div class="dropdown dropdown-options">
-                    <button type="button" class="btn btn-link btn-decent" (click)="editOptionsDropdown.toggle()" [class.active]="editOptionsDropdown.isOpen | async" #buttonOptions>
+                    <button type="button" class="btn btn-link btn-secondary" (click)="editOptionsDropdown.toggle()" [class.active]="editOptionsDropdown.isOpen | async" #buttonOptions>
                         <i class="icon-dots"></i>
                     </button>
-                    <div class="dropdown-menu" *sqxModalView="editOptionsDropdown" closeAlways="true" [sqxModalTarget]="buttonOptions" @fade>
+                    <div class="dropdown-menu" *sqxModalView="editOptionsDropdown" [sqxModalTarget]="buttonOptions" @fade>
                         <a class="dropdown-item" (click)="configureScriptsDialog.show()">
                             Scripts
                         </a>
+
+                        <a class="dropdown-item" (click)="cloneSchema()">
+                            Clone
+                        </a>
+
                         <a class="dropdown-item dropdown-item-delete" 
                             (sqxConfirmClick)="deleteSchema()" 
                             confirmTitle="Delete schema" 
@@ -44,7 +49,7 @@
             </div>
 
             <h3 class="panel-title">
-                {{schema | sqxDisplayName:'properties.label':'name'}} <i class="schema-edit icon-pencil" (click)="editSchemaDialog.show()"></i>
+                <i class="schema-edit icon-pencil" (click)="editSchemaDialog.show()"></i> {{schema.displayName}} 
             </h3>
         </div>
 
@@ -57,13 +62,14 @@
         <div class="panel-content panel-content-scroll" dnd-sortable-container [sortableData]="schema.fields">
             <div *ngFor="let field of schema.fields; let i = index" dnd-sortable [sortableIndex]="i" (sqxSorted)="sortFields($event)">
                 <sqx-field [field]="field" [schemas]="schemas?.values"
+                    [regexSuggestions]="regexSuggestions"
                     (disabling)="disableField(field)"
                     (deleting)="deleteField(field)"
                     (enabling)="enableField(field)"
                     (locking)="lockField(field)"
                     (showing)="showField(field)"
                     (hiding)="hideField(field)"
-                    (saving)="saveField($event)"></sqx-field>
+                    (saving)="saveField(field, $event)"></sqx-field>
             </div>
             
             <div class="table-items-footer">
@@ -85,10 +91,11 @@
                     </div>
 
                     <div class="row no-gutters mt-3">
-                        <div class="col">
+                        <div class="col pr-2">
                             <div class="form-check">
-                                <label class="form-check-label">
-                                    <input class="form-check-input" type="checkbox" formControlName="isLocalizable"> Localizable
+                                <input class="form-check-input" type="checkbox" id="isLocalizable" formControlName="isLocalizable" />
+                                <label class="form-check-label" for="isLocalizable">
+                                     Localizable
                                 </label>
                             </div>
     
@@ -138,7 +145,7 @@
             </div>
 
             <div class="modal-body">
-                <sqx-schema-edit-form [appName]="appName() | async" [name]="schema.name" [properties]="schema.properties" [version]="schema.version" (saved)="onSchemaSaved($event)" (cancelled)="editSchemaDialog.hide()"></sqx-schema-edit-form>
+                <sqx-schema-edit-form [name]="schema.name" [properties]="schema.properties" [version]="schema.version" (saved)="onSchemaSaved($event)" (cancelled)="editSchemaDialog.hide()"></sqx-schema-edit-form>
             </div>
         </div>
     </div>
@@ -167,7 +174,7 @@
     <div class="modal-backdrop"></div>
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <sqx-schema-scripts-form [appName]="appName() | async" [schema]="schema" (saved)="onSchemaScriptsSaved($event)" (cancelled)="configureScriptsDialog.hide()"></sqx-schema-scripts-form>
+            <sqx-schema-scripts-form [schema]="schema" (saved)="onSchemaScriptsSaved($event)" (cancelled)="configureScriptsDialog.hide()"></sqx-schema-scripts-form>
         </div>
     </div>
 </div>

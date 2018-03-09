@@ -1,51 +1,37 @@
 ﻿// ==========================================================================
-//  NamedGuidIdConverter.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
-using System.Linq;
 using Newtonsoft.Json;
 
 namespace Squidex.Infrastructure.Json
 {
-    public sealed class NamedGuidIdConverter : JsonConverter
+    public sealed class NamedGuidIdConverter : JsonClassConverter<NamedId<Guid>>
     {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        protected override void WriteValue(JsonWriter writer, NamedId<Guid> value, JsonSerializer serializer)
         {
-            var namedId = (NamedId<Guid>)value;
-
-            writer.WriteValue($"{namedId.Id},{namedId.Name}");
+            writer.WriteValue($"{value.Id},{value.Name}");
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        protected override NamedId<Guid> ReadValue(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null)
+            if (reader.TokenType != JsonToken.String)
             {
-                return null;
+                throw new JsonException($"Expected String, but got {reader.TokenType}.");
             }
 
-            var parts = ((string)reader.Value).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length < 2)
+            try
             {
-                throw new JsonException("Named id must have more than 2 parts divided by commata.");
+                return NamedId<Guid>.Parse(reader.Value.ToString(), Guid.TryParse);
             }
-
-            if (!Guid.TryParse(parts[0], out var id))
+            catch (ArgumentException ex)
             {
-                throw new JsonException("Named id must be a valid guid.");
+                throw new JsonException(ex.Message);
             }
-
-            return new NamedId<Guid>(id, string.Join(",", parts.Skip(1)));
-        }
-
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(NamedId<Guid>);
         }
     }
 }

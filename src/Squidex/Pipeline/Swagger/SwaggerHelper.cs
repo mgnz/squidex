@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  SwaggerHelper.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -17,7 +16,6 @@ using NJsonSchema;
 using NJsonSchema.Generation;
 using NSwag;
 using Squidex.Config;
-using Squidex.Controllers.Api;
 using Squidex.Shared.Identity;
 
 namespace Squidex.Pipeline.Swagger
@@ -64,7 +62,7 @@ namespace Squidex.Pipeline.Swagger
                     {
                         ["x-logo"] = new { url = urlOptions.BuildUrl("images/logo-white.png", false), backgroundColor = "#3f83df" }
                     },
-                    Title = $"Suidex API for {appName} App"
+                    Title = $"Squidex API for {appName} App", Version = "1.0"
                 },
                 BasePath = "/api"
             };
@@ -74,17 +72,17 @@ namespace Squidex.Pipeline.Swagger
                 document.Host = context.Request.Host.Value;
             }
 
-            document.SecurityDefinitions.Add("OAuth2", CreateOAuthSchema(urlOptions));
+            document.SecurityDefinitions.Add(Constants.SecurityDefinition, CreateOAuthSchema(urlOptions));
 
             return document;
         }
 
         public static SwaggerSecurityScheme CreateOAuthSchema(MyUrlsOptions urlOptions)
         {
-            var tokenUrl = urlOptions.BuildUrl($"{Constants.IdentityPrefix}/connect/token");
+            var tokenUrl = urlOptions.BuildUrl($"{Constants.IdentityServerPrefix}/connect/token");
 
             var securityDocs = LoadDocs("security");
-            var securityDescription = securityDocs.Replace("<TOKEN_URL>", tokenUrl);
+            var securityText = securityDocs.Replace("<TOKEN_URL>", tokenUrl);
 
             var result =
                 new SwaggerSecurityScheme
@@ -100,7 +98,7 @@ namespace Squidex.Pipeline.Swagger
                         { SquidexRoles.AppReader, "Client (readonly) or App contributor with Editor permission." },
                         { SquidexRoles.AppDeveloper, "App contributor with Developer permission." }
                     },
-                    Description = securityDescription
+                    Description = securityText
                 };
 
             return result;

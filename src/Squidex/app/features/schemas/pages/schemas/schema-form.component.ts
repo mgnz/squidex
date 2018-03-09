@@ -2,15 +2,15 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 
 import {
     ApiUrlConfig,
-    AuthService,
+    AppContext,
     DateTime,
     fadeAnimation,
     SchemaDetailsDto,
@@ -24,11 +24,14 @@ const FALLBACK_NAME = 'my-schema';
     selector: 'sqx-schema-form',
     styleUrls: ['./schema-form.component.scss'],
     templateUrl: './schema-form.component.html',
+    providers: [
+        AppContext
+    ],
     animations: [
         fadeAnimation
     ]
 })
-export class SchemaFormComponent {
+export class SchemaFormComponent implements OnInit {
     @Output()
     public created = new EventEmitter<SchemaDetailsDto>();
 
@@ -36,7 +39,7 @@ export class SchemaFormComponent {
     public cancelled = new EventEmitter();
 
     @Input()
-    public appName: string;
+    public import: any;
 
     public showImport = false;
 
@@ -59,10 +62,16 @@ export class SchemaFormComponent {
 
     constructor(
         public readonly apiUrl: ApiUrlConfig,
+        public readonly ctx: AppContext,
         private readonly schemas: SchemasService,
-        private readonly formBuilder: FormBuilder,
-        private readonly authService: AuthService
+        private readonly formBuilder: FormBuilder
     ) {
+    }
+
+    public ngOnInit() {
+        this.createForm.controls['import'].setValue(this.import || {});
+
+        this.showImport = !!this.import;
     }
 
     public toggleImport() {
@@ -85,9 +94,7 @@ export class SchemaFormComponent {
             const schemaName = this.createForm.controls['name'].value;
             const schemaDto = Object.assign(this.createForm.controls['import'].value || {}, { name: schemaName });
 
-            const me = this.authService.user!.token;
-
-            this.schemas.postSchema(this.appName, schemaDto, me, DateTime.now())
+            this.schemas.postSchema(this.ctx.appName, schemaDto, this.ctx.userToken, DateTime.now())
                 .subscribe(dto => {
                     this.emitCreated(dto);
                     this.resetCreateForm();

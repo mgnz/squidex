@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
@@ -16,7 +16,6 @@ import {
     AssetReplacedDto,
     AssetsService,
     DateTime,
-    LocalCacheService,
     UpdateAssetDto,
     Version,
     Versioned
@@ -31,7 +30,7 @@ describe('AssetDto', () => {
     const newVersion = new Version('2');
 
     it('should update name property and user info when renaming', () => {
-        const asset_1 = new AssetDto('1', creator, creator, creation, creation, 'name.png', 'png', 1, 1, 'image/png', false, 1, 1, version);
+        const asset_1 = new AssetDto('1', creator, creator, creation, creation, 'name.png', 'png', 1, 1, 'image/png', false, 1, 1, 'url', version);
         const asset_2 = asset_1.rename('new-name.png', modifier, newVersion, modified);
 
         expect(asset_2.fileName).toEqual('new-name.png');
@@ -43,7 +42,7 @@ describe('AssetDto', () => {
     it('should update file properties when uploading', () => {
         const update = new AssetReplacedDto(2, 2, 'image/jpeg', true, 2, 2);
 
-        const asset_1 = new AssetDto('1', creator, creator, creation, creation, 'name.png', 'png', 1, 1, 'image/png', false, 1, 1, version);
+        const asset_1 = new AssetDto('1', creator, creator, creation, creation, 'name.png', 'png', 1, 1, 'image/png', false, 1, 1, 'url', version);
         const asset_2 = asset_1.update(update, modifier, newVersion, modified);
 
         expect(asset_2.fileSize).toEqual(2);
@@ -70,7 +69,6 @@ describe('AssetsService', () => {
             ],
             providers: [
                 AssetsService,
-                LocalCacheService,
                 { provide: ApiUrlConfig, useValue: new ApiUrlConfig('http://service/p/') },
                 { provide: AnalyticsService, useValue: new AnalyticsService() }
             ]
@@ -90,7 +88,7 @@ describe('AssetsService', () => {
             assets = result;
         });
 
-        const req = httpMock.expectOne('http://service/p/api/apps/my-app/assets?take=17&skip=13');
+        const req = httpMock.expectOne('http://service/p/api/apps/my-app/assets?$top=17&$skip=13');
 
         expect(req.request.method).toEqual('GET');
         expect(req.request.headers.get('If-Match')).toBeNull();
@@ -147,6 +145,7 @@ describe('AssetsService', () => {
                     true,
                     1024,
                     2048,
+                    'http://service/p/api/assets/id1',
                     new Version('11')),
                 new AssetDto('id2', 'Created2', 'LastModifiedBy2',
                     DateTime.parseISO_UTC('2016-10-12T10:10'),
@@ -159,6 +158,7 @@ describe('AssetsService', () => {
                     true,
                     1024,
                     2048,
+                    'http://service/p/api/assets/id2',
                     new Version('22'))
         ]));
     }));
@@ -210,30 +210,8 @@ describe('AssetsService', () => {
                 true,
                 1024,
                 2048,
+                'http://service/p/api/assets/id1',
                 new Version('2')));
-    }));
-
-    it('should provide entry from cache if not found',
-        inject([LocalCacheService, AssetsService, HttpTestingController], (localCache: LocalCacheService, assetsService: AssetsService, httpMock: HttpTestingController) => {
-
-        const cached = {};
-
-        localCache.set('asset.123', cached, 10000);
-
-        let asset: AssetDto | null = null;
-
-        assetsService.getAsset('my-app', '123').subscribe(result => {
-            asset = result;
-        });
-
-        const req = httpMock.expectOne('http://service/p/api/apps/my-app/assets/123');
-
-        expect(req.request.method).toEqual('GET');
-        expect(req.request.headers.get('If-Match')).toBeNull();
-
-        req.flush({}, { status: 404, statusText: '404' });
-
-        expect(asset).toBe(cached);
     }));
 
     it('should append query to find by name',
@@ -241,7 +219,7 @@ describe('AssetsService', () => {
 
         assetsService.getAssets('my-app', 17, 13, 'my-query').subscribe();
 
-        const req = httpMock.expectOne('http://service/p/api/apps/my-app/assets?query=my-query&take=17&skip=13');
+        const req = httpMock.expectOne(`http://service/p/api/apps/my-app/assets?$filter=contains(fileName,'my-query')&$top=17&$skip=13`);
 
         expect(req.request.method).toEqual('GET');
         expect(req.request.headers.get('If-Match')).toBeNull();
@@ -249,25 +227,12 @@ describe('AssetsService', () => {
         req.flush({ total: 10, items: [] });
     }));
 
-    it('should append mime types to find by types',
+    it('should append ids query to find by ids',
         inject([AssetsService, HttpTestingController], (assetsService: AssetsService, httpMock: HttpTestingController) => {
 
-        assetsService.getAssets('my-app', 17, 13, undefined, ['image/png', 'image/png']).subscribe();
+        assetsService.getAssets('my-app', 0, 0, undefined, ['12', '23']).subscribe();
 
-        const req = httpMock.expectOne('http://service/p/api/apps/my-app/assets?mimeTypes=image/png,image/png&take=17&skip=13');
-
-        expect(req.request.method).toEqual('GET');
-        expect(req.request.headers.get('If-Match')).toBeNull();
-
-        req.flush({ total: 10, items: [] });
-    }));
-
-    it('should append mime types to find by ids',
-        inject([AssetsService, HttpTestingController], (assetsService: AssetsService, httpMock: HttpTestingController) => {
-
-        assetsService.getAssets('my-app', 17, 13, undefined, undefined, ['12', '23']).subscribe();
-
-        const req = httpMock.expectOne('http://service/p/api/apps/my-app/assets?ids=12,23&take=17&skip=13');
+        const req = httpMock.expectOne('http://service/p/api/apps/my-app/assets?ids=12,23');
 
         expect(req.request.method).toEqual('GET');
         expect(req.request.headers.get('If-Match')).toBeNull();
@@ -319,6 +284,7 @@ describe('AssetsService', () => {
                 true,
                 1024,
                 2048,
+                'http://service/p/api/assets/id1',
                 new Version('2')));
     }));
 

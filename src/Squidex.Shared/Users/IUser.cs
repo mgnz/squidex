@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  IUser.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System.Collections.Generic;
@@ -25,10 +24,10 @@ namespace Squidex.Shared.Users
 
         IReadOnlyList<ExternalLogin> Logins { get; }
 
-        void UpdateEmail(string email);
-
-        void AddClaim(Claim claim);
+        void SetEmail(string email);
 
         void SetClaim(string type, string value);
+
+        void AddClaim(Claim claim);
     }
 }

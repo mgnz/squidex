@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { HttpClient } from '@angular/common/http';
@@ -24,14 +24,17 @@ export class AppDto {
         public readonly name: string,
         public readonly permission: string,
         public readonly created: DateTime,
-        public readonly lastModified: DateTime
+        public readonly lastModified: DateTime,
+        public readonly planName: string,
+        public readonly planUpgrade: string
     ) {
     }
 }
 
 export class CreateAppDto {
     constructor(
-        public readonly name: string
+        public readonly name: string,
+        public readonly template?: string
     ) {
     }
 }
@@ -60,7 +63,9 @@ export class AppsService {
                             item.name,
                             item.permission,
                             DateTime.parseISO(item.created),
-                            DateTime.parseISO(item.lastModified));
+                            DateTime.parseISO(item.lastModified),
+                            item.planName,
+                            item.planUpgrade);
                     });
                 })
                 .pretifyError('Failed to load apps. Please reload.');
@@ -75,7 +80,7 @@ export class AppsService {
 
                     now = now || DateTime.now();
 
-                    return new AppDto(body.id, dto.name, 'Owner', now, now);
+                    return new AppDto(body.id, dto.name, body.permission, now, now, body.planName, body.planUpgrade);
                 })
                 .do(() => {
                     this.analytics.trackEvent('App', 'Created', dto.name);

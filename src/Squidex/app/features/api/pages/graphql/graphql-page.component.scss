@@ -9,4 +9,9 @@
 
 .graphiql-container > * {
     box-sizing: content-box;
+
+    // sass-lint:disable class-name-format
+    & .editorWrap {
+        overflow: hidden;
+    }
 }

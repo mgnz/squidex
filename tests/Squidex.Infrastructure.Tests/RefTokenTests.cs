@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  RefTokenTests.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -108,13 +107,17 @@ namespace Squidex.Infrastructure
         [Fact]
         public void Should_serialize_and_deserialize_null_token()
         {
-            JsonHelper.SerializeAndDeserialize<RefToken>(null, new RefTokenConverter());
+            RefToken value = null;
+
+            value.SerializeAndDeserialize(new RefTokenConverter());
         }
 
         [Fact]
         public void Should_serialize_and_deserialize_valid_token()
         {
-            RefToken.Parse("client:client1").SerializeAndDeserialize(new RefTokenConverter());
+            var value = RefToken.Parse("client:client1");
+
+            value.SerializeAndDeserialize(new RefTokenConverter());
         }
     }
 }

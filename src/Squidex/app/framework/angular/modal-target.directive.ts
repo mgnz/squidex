@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { AfterViewInit, Directive, ElementRef, Input, OnDestroy, OnInit, Renderer } from '@angular/core';
@@ -87,6 +87,10 @@ export class ModalTargetDirective implements AfterViewInit, OnDestroy, OnInit {
     }
 
     private updatePosition() {
+        if (!this.targetElement) {
+            return;
+        }
+
         const viewportHeight = document.documentElement.clientHeight;
         const viewportWidth = document.documentElement.clientWidth;
 

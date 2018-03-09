@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Pipe, PipeTransform } from '@angular/core';
@@ -16,7 +16,17 @@ import { Duration } from './../utils/duration';
 })
 export class ShortDatePipe implements PipeTransform {
     public transform(value: DateTime): any {
-        return value.toStringFormat('DD.MMM');
+        return value.toStringFormat('DD. MMM');
+    }
+}
+
+@Pipe({
+    name: 'sqxDate',
+    pure: true
+})
+export class DatePipe implements PipeTransform {
+    public transform(value: DateTime): any {
+        return value.toStringFormat('DD. MMM YYYY');
     }
 }
 
@@ -67,6 +77,16 @@ export class DayPipe implements PipeTransform {
 export class ShortTimePipe implements PipeTransform {
     public transform(value: DateTime): any {
         return value.toStringFormat('HH:mm');
+    }
+}
+
+@Pipe({
+    name: 'sqxFullDateTime',
+    pure: true
+})
+export class FullDateTimePipe implements PipeTransform {
+    public transform(value: DateTime): any {
+        return value.toStringFormat('LLLL');
     }
 }
 

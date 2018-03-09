@@ -1,19 +1,60 @@
 ﻿// ==========================================================================
-//  CollectionExtensions.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Squidex.Infrastructure
 {
     public static class CollectionExtensions
     {
+        public static ImmutableDictionary<TKey, TValue> SetItem<TKey, TValue>(this ImmutableDictionary<TKey, TValue> dictionary, TKey key, Func<TValue, TValue> updater)
+        {
+            if (dictionary.TryGetValue(key, out var value))
+            {
+                var newValue = updater(value);
+
+                if (!Equals(newValue, value))
+                {
+                    return dictionary.SetItem(key, newValue);
+                }
+            }
+
+            return dictionary;
+        }
+
+        public static bool TryGetValue<TKey, TValue, TBase>(this IReadOnlyDictionary<TKey, TValue> values, TKey key, out TBase item) where TValue : TBase
+        {
+            if (values.TryGetValue(key, out var value))
+            {
+                item = value;
+
+                return true;
+            }
+            else
+            {
+                item = default(TBase);
+
+                return false;
+            }
+        }
+
+        public static IEnumerable<T> OrEmpty<T>(this IEnumerable<T> source)
+        {
+            return source ?? Enumerable.Empty<T>();
+        }
+
+        public static IEnumerable<T> Concat<T>(this IEnumerable<T> source, T value)
+        {
+            return source.Concat(Enumerable.Repeat(value, 1));
+        }
+
         public static int SequentialHashCode<T>(this IEnumerable<T> collection)
         {
             return collection.SequentialHashCode(EqualityComparer<T>.Default);

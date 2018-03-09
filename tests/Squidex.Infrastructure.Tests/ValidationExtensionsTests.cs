@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  ValidationExtensionsTests.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -11,7 +10,7 @@ using Xunit;
 
 namespace Squidex.Infrastructure
 {
-    public sealed class ValidationExtensionsTests
+    public class ValidationExtensionsTests
     {
         [Fact]
         public void Should_return_true_if_is_between()

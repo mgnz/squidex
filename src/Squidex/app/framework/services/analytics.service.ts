@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Injectable } from '@angular/core';
@@ -15,7 +15,7 @@ import { ResourceLoaderService } from './resource-loader.service';
 
 export const AnalyticsServiceFactory = (analyticsId: AnalyticsIdConfig, router: Router, resourceLoader: ResourceLoaderService) => {
     return new AnalyticsService(analyticsId, router, resourceLoader);
-}
+};
 
 @Injectable()
 export class AnalyticsService {

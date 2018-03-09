@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  SimpleMapper.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -17,17 +16,37 @@ namespace Squidex.Infrastructure.Reflection
 {
     public static class SimpleMapper
     {
+        private sealed class StringConversionPropertyMapper : PropertyMapper
+        {
+            public StringConversionPropertyMapper(
+                IPropertyAccessor sourceAccessor,
+                IPropertyAccessor targetAccessor)
+                : base(sourceAccessor, targetAccessor)
+            {
+            }
+
+            public override void MapProperty(object source, object target, CultureInfo culture)
+            {
+                var value = GetValue(source);
+
+                SetValue(target, value?.ToString());
+            }
+        }
+
         private sealed class ConversionPropertyMapper : PropertyMapper
         {
             private readonly Type targetType;
 
-            public ConversionPropertyMapper(IPropertyAccessor srcAccessor, IPropertyAccessor dstAccessor, Type targetType)
-                : base(srcAccessor, dstAccessor)
+            public ConversionPropertyMapper(
+                IPropertyAccessor sourceAccessor,
+                IPropertyAccessor targetAccessor,
+                Type targetType)
+                : base(sourceAccessor, targetAccessor)
             {
                 this.targetType = targetType;
             }
 
-            public override void MapProperty(object source, object destination, CultureInfo culture)
+            public override void MapProperty(object source, object target, CultureInfo culture)
             {
                 var value = GetValue(source);
 
@@ -36,112 +55,99 @@ namespace Squidex.Infrastructure.Reflection
                     return;
                 }
 
-                object converted;
                 try
                 {
-                    converted = Convert.ChangeType(value, targetType, culture);
+                    var converted = Convert.ChangeType(value, targetType, culture);
 
-                    SetValue(destination, converted);
+                    SetValue(target, converted);
                 }
-                catch (InvalidCastException)
+                catch
                 {
-                    if (targetType == typeof(string))
-                    {
-                        converted = value.ToString();
-
-                        SetValue(destination, converted);
-                    }
+                    return;
                 }
             }
         }
 
         private class PropertyMapper
         {
-            private readonly IPropertyAccessor srcAccessor;
-            private readonly IPropertyAccessor dstAccessor;
+            private readonly IPropertyAccessor sourceAccessor;
+            private readonly IPropertyAccessor targetAccessor;
 
-            public PropertyMapper(IPropertyAccessor srcAccessor, IPropertyAccessor dstAccessor)
+            public PropertyMapper(IPropertyAccessor sourceAccessor, IPropertyAccessor targetAccessor)
             {
-                this.srcAccessor = srcAccessor;
-                this.dstAccessor = dstAccessor;
+                this.sourceAccessor = sourceAccessor;
+                this.targetAccessor = targetAccessor;
             }
 
-            public virtual void MapProperty(object source, object destination, CultureInfo culture)
+            public virtual void MapProperty(object source, object target, CultureInfo culture)
             {
                 var value = GetValue(source);
 
-                SetValue(destination, value);
+                SetValue(target, value);
             }
 
             protected void SetValue(object destination, object value)
             {
-                dstAccessor.Set(destination, value);
+                targetAccessor.Set(destination, value);
             }
 
             protected object GetValue(object source)
             {
-                return srcAccessor.Get(source);
+                return sourceAccessor.Get(source);
             }
         }
 
-        private static class ClassMapper<TSource, TDestination>
-            where TSource : class
-            where TDestination : class
+        private static class ClassMapper<TSource, TTarget> where TSource : class where TTarget : class
         {
-            private static readonly PropertyMapper[] Mappers;
-
-            private static readonly Type[] Convertibles =
-            {
-                typeof(bool),
-                typeof(byte),
-                typeof(char),
-                typeof(decimal),
-                typeof(float),
-                typeof(double),
-                typeof(short),
-                typeof(int),
-                typeof(long),
-                typeof(string)
-            };
+            private static readonly List<PropertyMapper> Mappers = new List<PropertyMapper>();
 
             static ClassMapper()
             {
-                var dstType = typeof(TDestination);
-                var srcType = typeof(TSource);
+                var sourceClassType = typeof(TSource);
+                var sourceProperties =
+                    sourceClassType.GetPublicProperties()
+                        .Where(x => x.CanRead).ToList();
 
-                var destinationProperties = dstType.GetPublicProperties();
+                var targetClassType = typeof(TTarget);
+                var targetProperties =
+                    targetClassType.GetPublicProperties()
+                        .Where(x => x.CanWrite).ToList();
 
-                var newMappers = new List<PropertyMapper>();
-
-                foreach (var srcProperty in srcType.GetPublicProperties().Where(x => x.CanRead))
+                foreach (var sourceProperty in sourceProperties)
                 {
-                    var dstProperty = destinationProperties.FirstOrDefault(x => x.Name == srcProperty.Name);
+                    var targetProperty = targetProperties.FirstOrDefault(x => x.Name == sourceProperty.Name);
 
-                    if (dstProperty == null || !dstProperty.CanWrite)
+                    if (targetProperty == null)
                     {
                         continue;
                     }
 
-                    var srcPropertyType = srcProperty.PropertyType;
-                    var dstPropertyType = dstProperty.PropertyType;
+                    var sourceType = sourceProperty.PropertyType;
+                    var targetType = targetProperty.PropertyType;
 
-                    if (srcPropertyType == dstPropertyType)
+                    if (sourceType == targetType)
                     {
-                        newMappers.Add(new PropertyMapper(new PropertyAccessor(srcType, srcProperty), new PropertyAccessor(dstType, dstProperty)));
+                        Mappers.Add(new PropertyMapper(
+                            new PropertyAccessor(sourceClassType, sourceProperty),
+                            new PropertyAccessor(targetClassType, targetProperty)));
                     }
-                    else
+                    else if (targetType == typeof(string))
                     {
-                        if (Convertibles.Contains(dstPropertyType))
-                        {
-                            newMappers.Add(new ConversionPropertyMapper(new PropertyAccessor(srcType, srcProperty), new PropertyAccessor(dstType, dstProperty), dstPropertyType));
-                        }
+                        Mappers.Add(new StringConversionPropertyMapper(
+                            new PropertyAccessor(sourceClassType, sourceProperty),
+                            new PropertyAccessor(targetClassType, targetProperty)));
+                    }
+                    else if (sourceType.Implements<IConvertible>() || targetType.Implements<IConvertible>())
+                    {
+                        Mappers.Add(new ConversionPropertyMapper(
+                            new PropertyAccessor(sourceClassType, sourceProperty),
+                            new PropertyAccessor(targetClassType, targetProperty),
+                            targetType));
                     }
                 }
-
-                Mappers = newMappers.ToArray();
             }
 
-            public static TDestination MapClass(TSource source, TDestination destination, CultureInfo culture)
+            public static TTarget MapClass(TSource source, TTarget destination, CultureInfo culture)
             {
                 foreach (var mapper in Mappers)
                 {
@@ -152,29 +158,29 @@ namespace Squidex.Infrastructure.Reflection
             }
         }
 
-        public static TDestination Map<TSource, TDestination>(TSource source)
+        public static TTarget Map<TSource, TTarget>(TSource source)
             where TSource : class
-            where TDestination : class, new()
+            where TTarget : class, new()
         {
-            return Map(source, new TDestination(), CultureInfo.CurrentCulture);
+            return Map(source, new TTarget(), CultureInfo.CurrentCulture);
         }
 
-        public static TDestination Map<TSource, TDestination>(TSource source, TDestination destination)
+        public static TTarget Map<TSource, TTarget>(TSource source, TTarget target)
             where TSource : class
-            where TDestination : class
+            where TTarget : class
         {
-            return Map(source, destination, CultureInfo.CurrentCulture);
+            return Map(source, target, CultureInfo.CurrentCulture);
         }
 
-        public static TDestination Map<TSource, TDestination>(TSource source, TDestination destination, CultureInfo culture)
+        public static TTarget Map<TSource, TTarget>(TSource source, TTarget target, CultureInfo culture)
             where TSource : class
-            where TDestination : class
+            where TTarget : class
         {
             Guard.NotNull(source, nameof(source));
             Guard.NotNull(culture, nameof(culture));
-            Guard.NotNull(destination, nameof(destination));
+            Guard.NotNull(target, nameof(target));
 
-            return ClassMapper<TSource, TDestination>.MapClass(source, destination, culture);
+            return ClassMapper<TSource, TTarget>.MapClass(source, target, culture);
         }
     }
 }

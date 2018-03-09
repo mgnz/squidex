@@ -1,10 +1,10 @@
 <sqx-title message="Event Consumers"></sqx-title>
 
-<sqx-panel theme="light" panelWidth="50rem">
+<sqx-panel theme="light" desiredWidth="50rem">
     <div class="panel-header">
         <div class="panel-title-row">
             <div class="float-right">
-                <button class="btn btn-link btn-decent" (click)="load(true)" title="Refresh Event Consumers (CTRL + SHIFT + R)">
+                <button class="btn btn-link btn-secondary" (click)="load(true)" title="Refresh Event Consumers (CTRL + SHIFT + R)">
                     <i class="icon-reset"></i> Refresh
                 </button>
 
@@ -22,21 +22,15 @@
     <div class="panel-main">
         <div class="panel-content panel-content-scroll">
             <table class="table table-items table-fixed">
-                <colgroup>
-                    <col style="width: 50%" />
-                    <col style="width: 50%" />
-                    <col style="width: 160px" />
-                </colgroup>
-
                 <thead>
                     <tr>
-                        <th>
+                        <th class="cell-auto">
                             Name
                         </th>
-                        <th class="text-right">
+                        <th class="cell-auto-right">
                             Position
                         </th>
-                        <th class="text-right">
+                        <th class="cell-actions-lg">
                             Actions
                         </th>
                     </tr>
@@ -45,17 +39,17 @@
                 <tbody>
                     <ng-template ngFor let-eventConsumer [ngForOf]="eventConsumers">
                         <tr [class.faulted]="eventConsumer.error && eventConsumer.error.length > 0">
-                            <td>
+                            <td class="auto-auto">
                                 <span class="truncate">
                                     <i class="faulted-icon icon icon-bug" (click)="showError(eventConsumer)" [class.hidden]="!eventConsumer.error || eventConsumer.error.length === 0"></i>
 
                                     {{eventConsumer.name}}
                                 </span>
                             </td>
-                            <td class="text-right">
+                            <td class="cell-auto-right">
                                 <span>{{eventConsumer.position}}</span>
                             </td>
-                            <td class="text-right">
+                            <td class="cell-actions-lg">
                                 <button class="btn btn-link" (click)="reset(eventConsumer)" *ngIf="!eventConsumer.isResetting" title="Reset Event Consumer">
                                     <i class="icon icon-reset"></i>
                                 </button>

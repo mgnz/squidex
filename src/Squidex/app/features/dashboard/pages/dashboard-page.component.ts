@@ -2,19 +2,22 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Observable, Subscription } from 'rxjs';
 
 import {
-    AppComponentBase,
-    AppsStoreService,
-    AuthService,
+    AppContext,
+    AppDto,
     DateTime,
-    DialogService,
     fadeAnimation,
-    UsagesService
+    formatHistoryMessage,
+    HistoryEventDto,
+    HistoryService,
+    UsagesService,
+    UsersProviderService
 } from 'shared';
 
 declare var _urq: any;
@@ -23,17 +26,24 @@ declare var _urq: any;
     selector: 'sqx-dashboard-page',
     styleUrls: ['./dashboard-page.component.scss'],
     templateUrl: './dashboard-page.component.html',
+    providers: [
+        AppContext
+    ],
     animations: [
         fadeAnimation
     ]
 })
-export class DashboardPageComponent extends AppComponentBase implements OnInit {
+export class DashboardPageComponent implements OnDestroy, OnInit {
+    private subscriptions: Subscription[] = [];
+
     public profileDisplayName = '';
 
     public chartStorageCount: any;
     public chartStorageSize: any;
     public chartCallsCount: any;
     public chartCallsPerformance: any;
+
+    public app = this.ctx.appChanges.filter(x => !!x).map(x => <AppDto>x);
 
     public chartOptions = {
         responsive: true,
@@ -54,98 +64,122 @@ export class DashboardPageComponent extends AppComponentBase implements OnInit {
         maintainAspectRatio: false
     };
 
+    public history: HistoryEventDto[] = [];
+
     public assetsCurrent = 0;
     public assetsMax = 0;
 
     public callsCurrent = 0;
     public callsMax = 0;
 
-    constructor(apps: AppsStoreService, dialogs: DialogService, authService: AuthService,
+    constructor(public readonly ctx: AppContext,
+        private readonly historyService: HistoryService,
+        private readonly users: UsersProviderService,
         private readonly usagesService: UsagesService
     ) {
-        super(dialogs, apps, authService);
+    }
+
+    public ngOnDestroy() {
+        for (let subscription of this.subscriptions) {
+            subscription.unsubscribe();
+        }
+
+        this.subscriptions = [];
     }
 
     public ngOnInit() {
-        this.appName()
-            .switchMap(app => this.usagesService.getTodayStorage(app))
-            .subscribe(dto => {
-                this.assetsCurrent = dto.size;
-                this.assetsMax = dto.maxAllowed;
-            });
+        this.subscriptions.push(
+            this.app
+                .switchMap(app => this.usagesService.getTodayStorage(app.name))
+                .subscribe(dto => {
+                    this.assetsCurrent = dto.size;
+                    this.assetsMax = dto.maxAllowed;
+                }));
 
-        this.appName()
-            .switchMap(app => this.usagesService.getMonthCalls(app))
-            .subscribe(dto => {
-                this.callsCurrent = dto.count;
-                this.callsMax = dto.maxAllowed;
-            });
+        this.subscriptions.push(
+            this.app
+                .switchMap(app => this.usagesService.getMonthCalls(app.name))
+                .subscribe(dto => {
+                    this.callsCurrent = dto.count;
+                    this.callsMax = dto.maxAllowed;
+                }));
 
-        this.appName()
-            .switchMap(app => this.usagesService.getStorageUsages(app, DateTime.today().addDays(-20), DateTime.today()))
-            .subscribe(dtos => {
-                this.chartStorageCount = {
-                    labels: createLabels(dtos),
-                    datasets: [
-                        {
-                            label: 'Number of Assets',
-                            lineTension: 0,
-                            fill: false,
-                            backgroundColor: 'rgba(51, 137, 213, 0.6)',
-                            borderColor: 'rgba(51, 137, 213, 1)',
-                            borderWidth: 1,
-                            data: dtos.map(x => x.count)
-                        }
-                    ]
-                };
+        this.subscriptions.push(
+            this.app
+                .switchMap(app => this.historyService.getHistory(app.name, ''))
+                .subscribe(dto => {
+                    this.history = dto;
+                }));
 
-                this.chartStorageSize = {
-                    labels: createLabels(dtos),
-                    datasets: [
-                        {
-                            label: 'Size of Assets (MB)',
-                            lineTension: 0,
-                            fill: false,
-                            backgroundColor: 'rgba(51, 137, 213, 0.6)',
-                            borderColor: 'rgba(51, 137, 213, 1)',
-                            borderWidth: 1,
-                            data: dtos.map(x => Math.round(10 * (x.size / (1024 * 1024))) / 10)
-                        }
-                    ]
-                };
-            });
+        this.subscriptions.push(
+            this.app
+                .switchMap(app => this.usagesService.getStorageUsages(app.name, DateTime.today().addDays(-20), DateTime.today()))
+                .subscribe(dtos => {
+                    this.chartStorageCount = {
+                        labels: createLabels(dtos),
+                        datasets: [
+                            {
+                                label: 'Number of Assets',
+                                lineTension: 0,
+                                fill: false,
+                                backgroundColor: 'rgba(51, 137, 213, 0.6)',
+                                borderColor: 'rgba(51, 137, 213, 1)',
+                                borderWidth: 1,
+                                data: dtos.map(x => x.count)
+                            }
+                        ]
+                    };
 
-        this.appName()
-            .switchMap(app => this.usagesService.getCallsUsages(app, DateTime.today().addDays(-20), DateTime.today()))
-            .subscribe(dtos => {
-                this.chartCallsCount = {
-                    labels: createLabels(dtos),
-                    datasets: [
-                        {
-                            label: 'Number of API Calls',
-                            backgroundColor: 'rgba(51, 137, 213, 0.6)',
-                            borderColor: 'rgba(51, 137, 213, 1)',
-                            borderWidth: 1,
-                            data: dtos.map(x => x.count)
-                        }
-                    ]
-                };
+                    this.chartStorageSize = {
+                        labels: createLabels(dtos),
+                        datasets: [
+                            {
+                                label: 'Size of Assets (MB)',
+                                lineTension: 0,
+                                fill: false,
+                                backgroundColor: 'rgba(51, 137, 213, 0.6)',
+                                borderColor: 'rgba(51, 137, 213, 1)',
+                                borderWidth: 1,
+                                data: dtos.map(x => Math.round(10 * (x.size / (1024 * 1024))) / 10)
+                            }
+                        ]
+                    };
+                }));
 
-                this.chartCallsPerformance = {
-                    labels: createLabels(dtos),
-                    datasets: [
-                        {
-                            label: 'API Performance (Milliseconds)',
-                            backgroundColor: 'rgba(51, 137, 213, 0.6)',
-                            borderColor: 'rgba(51, 137, 213, 1)',
-                            borderWidth: 1,
-                            data: dtos.map(x => x.averageMs)
-                        }
-                    ]
-                };
-            });
+        this.subscriptions.push(
+            this.app
+                .switchMap(app => this.usagesService.getCallsUsages(app.name, DateTime.today().addDays(-20), DateTime.today()))
+                .subscribe(dtos => {
+                    this.chartCallsCount = {
+                        labels: createLabels(dtos),
+                        datasets: [
+                            {
+                                label: 'Number of API Calls',
+                                backgroundColor: 'rgba(51, 137, 213, 0.6)',
+                                borderColor: 'rgba(51, 137, 213, 1)',
+                                borderWidth: 1,
+                                data: dtos.map(x => x.count)
+                            }
+                        ]
+                    };
 
-        this.profileDisplayName = this.authService.user!.displayName;
+                    this.chartCallsPerformance = {
+                        labels: createLabels(dtos),
+                        datasets: [
+                            {
+                                label: 'API Performance (Milliseconds)',
+                                backgroundColor: 'rgba(51, 137, 213, 0.6)',
+                                borderColor: 'rgba(51, 137, 213, 1)',
+                                borderWidth: 1,
+                                data: dtos.map(x => x.averageMs)
+                            }
+                        ]
+                    };
+                }));
+    }
+
+    public format(message: string): Observable<string> {
+        return formatHistoryMessage(message, this.users);
     }
 
     public showForum() {

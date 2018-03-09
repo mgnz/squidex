@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Injectable } from '@angular/core';
@@ -22,12 +22,12 @@ export class UsersProviderService {
     ) {
     }
 
-    public getUser(id: string, me = 'Me'): Observable<UserDto> {
+    public getUser(id: string, me: string | null = 'Me'): Observable<UserDto> {
         let result = this.caches[id];
 
         if (!result) {
             const request =
-                this.usersService.getUser(id).retry(2)
+                this.usersService.getUser(id)
                     .catch(error => {
                         return Observable.of(new UserDto('NOT FOUND', 'NOT FOUND', 'NOT FOUND', null, false));
                     })
@@ -40,7 +40,7 @@ export class UsersProviderService {
 
         return result
             .map(dto => {
-                if (this.authService.user && dto.id === this.authService.user.id) {
+                if (me && this.authService.user && dto.id === this.authService.user.id) {
                     dto = new UserDto(dto.id, dto.email, me, dto.pictureUrl, dto.isLocked);
                 }
                 return dto;

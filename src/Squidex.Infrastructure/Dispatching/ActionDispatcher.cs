@@ -1,18 +1,19 @@
 // ==========================================================================
-//  FuncDispatcher.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
 using System.Linq;
 using System.Reflection;
 
+#pragma warning disable IDE0033 // Use explicitly provided tuple name
+
 namespace Squidex.Infrastructure.Dispatching
 {
-    public sealed class ActionDispatcher<TTarget, TIn>
+    public static class ActionDispatcher<TTarget, TIn>
     {
         public delegate void ActionDelegate<in T>(TTarget target, T input) where T : TIn;
 

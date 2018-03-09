@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  BackgroundUsageTrackerTests.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -114,7 +113,7 @@ namespace Squidex.Infrastructure.UsageTracking
             sut.Next();
             sut.Dispose();
 
-            A.CallTo(() => usageStore.TrackUsagesAsync(A<DateTime>.Ignored, A<string>.Ignored, A<double>.Ignored, A<long>.Ignored)).MustNotHaveHappened();
+            A.CallTo(() => usageStore.TrackUsagesAsync(A<DateTime>.Ignored, A<string>.Ignored, A<double>.Ignored, A<double>.Ignored)).MustNotHaveHappened();
         }
 
         [Fact]

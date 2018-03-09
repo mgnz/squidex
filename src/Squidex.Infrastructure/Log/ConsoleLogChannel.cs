@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  ConsoleLogChannel.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -22,7 +21,18 @@ namespace Squidex.Infrastructure.Log
 
         public void Log(SemanticLogLevel logLevel, string message)
         {
-            processor.EnqueueMessage(new LogMessageEntry { Message = message, IsError = logLevel >= SemanticLogLevel.Error });
+            var color = 0;
+
+            if (logLevel == SemanticLogLevel.Warning)
+            {
+                color = 0xffff00;
+            }
+            else if (logLevel >= SemanticLogLevel.Error)
+            {
+                color = 0xff0000;
+            }
+
+            processor.EnqueueMessage(new LogMessageEntry { Message = message, Color = color });
         }
     }
 }

@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 export * from './angular/animations';
@@ -17,14 +17,14 @@ export * from './angular/dialog-renderer.component';
 export * from './angular/dropdown.component';
 export * from './angular/file-drop.directive';
 export * from './angular/focus-on-init.directive';
-export * from './angular/geolocation-editor.component';
 export * from './angular/http-extensions-impl';
+export * from './angular/ignore-scrollbar.directive';
 export * from './angular/image-source.directive';
 export * from './angular/indeterminate-value.directive';
 export * from './angular/jscript-editor.component';
 export * from './angular/json-editor.component';
+export * from './angular/keys.pipe';
 export * from './angular/lowercase-input.directive';
-export * from './angular/markdown-editor.component';
 export * from './angular/modal-target.directive';
 export * from './angular/modal-view.directive';
 export * from './angular/money.pipe';
@@ -36,18 +36,19 @@ export * from './angular/panel-container.directive';
 export * from './angular/parent-link.directive';
 export * from './angular/popup-link.directive';
 export * from './angular/progress-bar.component';
-export * from './angular/rich-editor.component';
 export * from './angular/root-view.directive';
 export * from './angular/router-utils';
 export * from './angular/scroll-active.directive';
 export * from './angular/shortcut.component';
 export * from './angular/slider.component';
+export * from './angular/slugify-input.directive';
 export * from './angular/sorted.directive';
 export * from './angular/stars.component';
 export * from './angular/tag-editor.component';
 export * from './angular/template-wrapper.directive';
 export * from './angular/title.component';
 export * from './angular/toggle.component';
+export * from './angular/tooltip.component';
 export * from './angular/user-report.component';
 export * from './angular/validators';
 export * from './configurations';
@@ -56,7 +57,6 @@ export * from './services/analytics.service';
 export * from './services/clipboard.service';
 export * from './services/dialog.service';
 export * from './services/local-store.service';
-export * from './services/local-cache.service';
 export * from './services/message-bus.service';
 export * from './services/onboarding.service';
 export * from './services/resource-loader.service';

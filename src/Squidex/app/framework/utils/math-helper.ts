@@ -2,12 +2,14 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 /* tslint:disable: no-bitwise */
 
 export module MathHelper {
+    export const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
+
     const CRC32_TABLE: number[] = [];
 
     function ensureCrc32Table() {

@@ -1,7 +1,7 @@
 ﻿      var webpack = require('webpack'),
      webpackMerge = require('webpack-merge'),
 ExtractTextPlugin = require('extract-text-webpack-plugin'),
-        AotPlugin = require('@ngtools/webpack').AotPlugin,
+   ngToolsWebpack = require('@ngtools/webpack'),
         runConfig = require('./webpack.run.base.js'),
           helpers = require('./helpers');
 
@@ -86,6 +86,7 @@ module.exports = webpackMerge(runConfig, {
     plugins: [
         new webpack.NoEmitOnErrorsPlugin(),
         new webpack.DefinePlugin({ 'process.env': { 'ENV': JSON.stringify(ENV) } }),
+        new webpack.optimize.ModuleConcatenationPlugin(),
 
         /*
          * Puts each bundle into a file and appends the hash of the file to the path.
@@ -93,7 +94,7 @@ module.exports = webpackMerge(runConfig, {
          * See: https://github.com/webpack/extract-text-webpack-plugin
          */
         new ExtractTextPlugin('[name].css'),
-
+        
         new webpack.optimize.UglifyJsPlugin({
             beautify: false,
             mangle: {
@@ -105,7 +106,7 @@ module.exports = webpackMerge(runConfig, {
             comments: false
         }),
 
-        new AotPlugin({
+        new ngToolsWebpack.AngularCompilerPlugin({
             tsConfigPath: './tsconfig.json',
             entryModule: 'app/app.module#AppModule'
         }),

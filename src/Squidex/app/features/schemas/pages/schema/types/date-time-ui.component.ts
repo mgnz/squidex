@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Component, Input, OnInit } from '@angular/core';
@@ -28,11 +28,12 @@ export class DateTimeUIComponent implements OnInit {
     public hideAllowedValues: Observable<boolean>;
 
     public ngOnInit() {
-        this.editForm.addControl('editor',
+        this.editForm.setControl('editor',
             new FormControl(this.properties.editor, [
                 Validators.required
             ]));
-        this.editForm.addControl('placeholder',
+
+        this.editForm.setControl('placeholder',
             new FormControl(this.properties.placeholder, [
                 Validators.maxLength(100)
             ]));

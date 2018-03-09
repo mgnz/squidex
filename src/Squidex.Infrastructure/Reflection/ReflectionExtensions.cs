@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  ReflectionExtensions.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -63,6 +62,11 @@ namespace Squidex.Infrastructure.Reflection
             }
 
             return flattenProperties.ToArray();
+        }
+
+        public static bool Implements<T>(this Type type)
+        {
+            return type.GetInterfaces().Contains(typeof(T));
         }
     }
 }

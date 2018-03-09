@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Component, Input, OnInit } from '@angular/core';
@@ -26,8 +26,11 @@ export class BooleanValidationComponent implements OnInit {
     public showDefaultValue: Observable<boolean>;
 
     public ngOnInit() {
-        this.editForm.addControl('defaultValue',
+        this.editForm.setControl('defaultValue',
             new FormControl(this.properties.defaultValue));
+
+        this.editForm.setControl('inlineEditable',
+            new FormControl(this.properties.inlineEditable));
 
         this.showDefaultValue =
             this.editForm.controls['isRequired'].valueChanges

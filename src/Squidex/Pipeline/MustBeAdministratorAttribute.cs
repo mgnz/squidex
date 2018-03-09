@@ -1,17 +1,15 @@
 ﻿// ==========================================================================
-//  MustBeAdministratorAttribute.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using Microsoft.AspNetCore.Authorization;
 using Squidex.Shared.Identity;
 
 namespace Squidex.Pipeline
 {
-    public sealed class MustBeAdministratorAttribute : AuthorizeAttribute
+    public sealed class MustBeAdministratorAttribute : ApiAuthorizeAttribute
     {
         public MustBeAdministratorAttribute()
         {

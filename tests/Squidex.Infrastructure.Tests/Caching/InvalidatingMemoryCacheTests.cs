@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  InvalidatingMemoryCacheTest.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using FakeItEasy;
@@ -61,7 +60,7 @@ namespace Squidex.Infrastructure.Caching
         {
             sut.Invalidate(123);
 
-            A.CallTo(() => pubsub.Publish("CacheInvalidations", A<string>.Ignored, true)).MustNotHaveHappened();
+            A.CallTo(() => pubsub.Publish(A<InvalidateMessage>.That.Matches(x => x.CacheKey == "a-key"), true)).MustNotHaveHappened();
         }
 
         [Fact]
@@ -69,7 +68,7 @@ namespace Squidex.Infrastructure.Caching
         {
             sut.Invalidate("a-key");
 
-            A.CallTo(() => pubsub.Publish("CacheInvalidations", "a-key", true)).MustHaveHappened();
+            A.CallTo(() => pubsub.Publish(A<InvalidateMessage>.That.Matches(x => x.CacheKey == "a-key"), true)).MustHaveHappened();
         }
 
         [Fact]
@@ -77,7 +76,7 @@ namespace Squidex.Infrastructure.Caching
         {
             ((IMemoryCache)sut).Invalidate("a-key");
 
-            A.CallTo(() => pubsub.Publish("CacheInvalidations", "a-key", true)).MustHaveHappened();
+            A.CallTo(() => pubsub.Publish(A<InvalidateMessage>.That.Matches(x => x.CacheKey == "a-key"), true)).MustHaveHappened();
         }
 
         [Fact]
@@ -117,7 +116,7 @@ namespace Squidex.Infrastructure.Caching
 
             Assert.Equal(123, anotherSut.Get<int>("a-key"));
 
-            anotherPubsub.Publish("CacheInvalidations", "a-key", true);
+            anotherPubsub.Publish(new InvalidateMessage { CacheKey = "a-key" }, true);
 
             Assert.Equal(0, anotherSut.Get<int>("a-key"));
         }

@@ -1,38 +1,76 @@
 ﻿// ==========================================================================
-//  EnrichWithSchemaIdHandler.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Squidex.Domain.Apps.Read.Schemas;
-using Squidex.Domain.Apps.Read.Schemas.Services;
-using Squidex.Domain.Apps.Write;
-using Squidex.Domain.Apps.Write.Schemas;
+using Squidex.Domain.Apps.Entities;
+using Squidex.Domain.Apps.Entities.Schemas;
 using Squidex.Infrastructure;
-using Squidex.Infrastructure.CQRS.Commands;
+using Squidex.Infrastructure.Commands;
 
 namespace Squidex.Pipeline.CommandMiddlewares
 {
     public sealed class EnrichWithSchemaIdCommandMiddleware : ICommandMiddleware
     {
-        private readonly ISchemaProvider schemas;
+        private readonly IAppProvider appProvider;
         private readonly IActionContextAccessor actionContextAccessor;
 
-        public EnrichWithSchemaIdCommandMiddleware(ISchemaProvider schemas, IActionContextAccessor actionContextAccessor)
+        public EnrichWithSchemaIdCommandMiddleware(IAppProvider appProvider, IActionContextAccessor actionContextAccessor)
         {
-            this.schemas = schemas;
+            this.appProvider = appProvider;
 
             this.actionContextAccessor = actionContextAccessor;
         }
 
         public async Task HandleAsync(CommandContext context, Func<Task> next)
         {
-            if (context.Command is SchemaCommand schemaCommand && schemaCommand.SchemaId == null)
+            if (actionContextAccessor.ActionContext == null)
+            {
+                await next();
+            }
+
+            if (context.Command is ISchemaCommand schemaCommand && schemaCommand.SchemaId == null)
+            {
+                var schemaId = await GetSchemaIdAsync(context);
+
+                schemaCommand.SchemaId = schemaId;
+            }
+
+            if (context.Command is SchemaCommand schemaSelfCommand && schemaSelfCommand.SchemaId == Guid.Empty)
+            {
+                var schemaId = await GetSchemaIdAsync(context);
+
+                schemaSelfCommand.SchemaId = schemaId?.Id ?? Guid.Empty;
+            }
+
+            await next();
+        }
+
+        private async Task<NamedId<Guid>> GetSchemaIdAsync(CommandContext context)
+        {
+            NamedId<Guid> appId = null;
+
+            if (context.Command is IAppCommand appCommand)
+            {
+                appId = appCommand.AppId;
+            }
+
+            if (appId == null)
+            {
+                var appFeature = actionContextAccessor.ActionContext.HttpContext.Features.Get<IAppFeature>();
+
+                if (appFeature != null && appFeature.App != null)
+                {
+                    appId = new NamedId<Guid>(appFeature.App.Id, appFeature.App.Name);
+                }
+            }
+
+            if (appId != null)
             {
                 var routeValues = actionContextAccessor.ActionContext.RouteData.Values;
 
@@ -44,23 +82,23 @@ namespace Squidex.Pipeline.CommandMiddlewares
 
                     if (Guid.TryParse(schemaName, out var id))
                     {
-                        schema = await schemas.FindSchemaByIdAsync(id);
+                        schema = await appProvider.GetSchemaAsync(appId.Id, id);
                     }
                     else
                     {
-                        schema = await schemas.FindSchemaByNameAsync(schemaCommand.AppId.Id, schemaName);
+                        schema = await appProvider.GetSchemaAsync(appId.Id, schemaName);
                     }
 
                     if (schema == null)
                     {
-                        throw new DomainObjectNotFoundException(schemaName, typeof(SchemaDomainObject));
+                        throw new DomainObjectNotFoundException(schemaName, typeof(ISchemaEntity));
                     }
 
-                    schemaCommand.SchemaId = new NamedId<Guid>(schema.Id, schema.Name);
+                    return new NamedId<Guid>(schema.Id, schema.Name);
                 }
             }
 
-            await next();
+            return null;
         }
     }
 }

@@ -1,0 +1,16 @@
+@import '_vars';
+@import '_mixins';
+
+.section {
+    border-top: 1px solid $color-border;
+    padding-top: 1rem;
+    padding-bottom: 0;
+}
+
+.form-check {
+    margin-top: 1rem;
+}
+
+.rotated-label {
+    @include rotate(-45deg);
+}

@@ -23,6 +23,7 @@
     & {
         color: $color;
         cursor: pointer;
+        border: 1px solid transparent;
     }
 
     &:focus {
@@ -80,6 +81,13 @@
     display: inline-flex;
 }
 
+@mixin flex-direction($direction) {
+    -webkit-flex-direction: $direction;
+       -moz-flex-direction: $direction;
+        -ms-flex-direction: $direction;
+            flex-direction: $direction;
+}
+
 @mixin flex-flow($values: (row nowrap)) {
     -webkit-flex-flow: $values;
        -moz-flex-flow: $values;
@@ -93,6 +101,12 @@
        -moz-flex-grow: $int;
     -ms-flex-positive: $int;
             flex-grow: $int;
+}
+
+@mixin flex-shrink($int: 0) {
+    -webkit-flex-shrink: $int;
+       -moz-flex-shrink: $int;
+            flex-shrink: $int;
 }
 
 @mixin inner-border($color: #999) {
@@ -202,12 +216,6 @@
 @mixin text-shadow-none() {
     -webkit-text-shadow: none;
             text-shadow: none;
-}
-
-@mixin box-shadow-colored($axis, $color) {
-    -webkit-box-shadow: 0 0 $axis $color; 
-       -moz-box-shadow: 0 0 $axis $color;  
-            box-shadow: 0 0 $axis $color;
 }
 
 @mixin box-shadow-none() {

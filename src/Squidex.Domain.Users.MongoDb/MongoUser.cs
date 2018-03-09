@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  MongoUser.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -112,7 +111,7 @@ namespace Squidex.Domain.Users.MongoDb
             Id = ObjectId.GenerateNewId().ToString();
         }
 
-        public void UpdateEmail(string email)
+        public void SetEmail(string email)
         {
             Email = UserName = email;
         }

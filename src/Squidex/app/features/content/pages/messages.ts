@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { ContentDto } from 'shared';
@@ -35,14 +35,7 @@ export class ContentVersionSelected {
     }
 }
 
-export class ContentPublished {
-    constructor(
-        public readonly content: ContentDto
-    ) {
-    }
-}
-
-export class ContentUnpublished {
+export class ContentStatusChanged {
     constructor(
         public readonly content: ContentDto
     ) {

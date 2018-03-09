@@ -1,9 +1,8 @@
 ﻿// ==========================================================================
-//  RefTokenSerializer.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -12,7 +11,7 @@ using MongoDB.Bson.Serialization.Serializers;
 
 namespace Squidex.Infrastructure.MongoDb
 {
-    public class RefTokenSerializer : SerializerBase<RefToken>
+    public class RefTokenSerializer : ClassSerializerBase<RefToken>
     {
         private static readonly Lazy<bool> Registerer = new Lazy<bool>(() =>
         {
@@ -26,23 +25,16 @@ namespace Squidex.Infrastructure.MongoDb
             return !Registerer.IsValueCreated && Registerer.Value;
         }
 
-        public override RefToken Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+        protected override RefToken DeserializeValue(BsonDeserializationContext context, BsonDeserializationArgs args)
         {
             var value = context.Reader.ReadString();
 
-            return value != null ? RefToken.Parse(value) : null;
+            return RefToken.Parse(value);
         }
 
-        public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, RefToken value)
+        protected override void SerializeValue(BsonSerializationContext context, BsonSerializationArgs args, RefToken value)
         {
-            if (value != null)
-            {
-                context.Writer.WriteString(value.ToString());
-            }
-            else
-            {
-                context.Writer.WriteNull();
-            }
+            context.Writer.WriteString(value.ToString());
         }
     }
 }

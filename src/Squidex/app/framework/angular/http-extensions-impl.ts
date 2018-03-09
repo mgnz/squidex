@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
@@ -19,29 +19,41 @@ export class Versioned<T> {
 }
 
 function formatMessage(message: string, details?: string[]) {
-    const parts: string[] = [];
+    const appendLast = (row: string, char: string) => {
+        const last = row[row.length - 1];
 
-    const addPart = (p: string) => {
-        p = p.trim();
-
-        const c = p[p.length - 1];
-
-        if (c !== '.') {
-            p += '.';
+        if (last !== char) {
+            return row + char;
+        } else {
+            return row;
         }
-
-        parts.push(p);
     };
 
-    addPart(message);
+    const removeLast = (row: string, char: string) => {
+        const last = row[row.length - 1];
 
-    if (details) {
-        for (let d of details) {
-            addPart(d);
+        if (last === char) {
+            return row.substr(0, row.length - 1);
+        } else {
+            return row;
         }
-    }
+    };
 
-    return parts.join(' ');
+    if (details && details.length > 1) {
+        let result = appendLast(message, '.') + '<ul>';
+
+        for (let detail of details) {
+            result += `<li>${appendLast(detail, '.')}</li>`;
+        }
+
+        result = result + '</ul>';
+
+        return result;
+    } else if (details && details.length === 1) {
+        return `${appendLast(removeLast(message, '.'), ':')} ${appendLast(details[0], '.')}`;
+    } else {
+        return appendLast(message, '.');
+    }
 }
 
 export class ErrorDto {
@@ -75,6 +87,12 @@ export module HTTP {
         return handleVersion(http.put<T>(url, body, { observe: 'response', headers }), version);
     }
 
+    export function patchVersioned<T>(http: HttpClient, url: string, body: any, version?: Version): Observable<Versioned<HttpResponse<T>>> {
+        const headers = createHeaders(version);
+
+        return handleVersion(http.request<T>('PATCH', url, { body, observe: 'response', headers }), version);
+    }
+
     export function deleteVersioned<T>(http: HttpClient, url: string, version?: Version): Observable<Versioned<HttpResponse<T>>> {
         const headers = createHeaders(version);
 
@@ -100,11 +118,11 @@ export module HTTP {
 
 export function pretifyError(message: string): Observable<any> {
     return this.catch((response: HttpErrorResponse) => {
-        let result: ErrorDto = null;
+        let result: ErrorDto | null = null;
 
         if (!(response.error instanceof Error)) {
             try {
-                const errorDto = JSON.parse(response.error);
+                const errorDto = typeof response.error === 'object' ? response.error : JSON.parse(response.error);
 
                 if (response.status === 412) {
                     result = new ErrorDto(response.status, 'Failed to make the update. Another user has made a change. Please reload.');

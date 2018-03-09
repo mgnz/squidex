@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { NgModule } from '@angular/core';
@@ -61,7 +61,7 @@ const routes: Routes = [
                                     isReadOnly: true
                                 },
                                 resolve: {
-                                    schemaOverride: ResolvePublishedSchemaGuard
+                                    schema: ResolvePublishedSchemaGuard
                                 }
                             }
                         ]

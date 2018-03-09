@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { HttpClient } from '@angular/common/http';
@@ -30,12 +30,29 @@ export class AppLanguagesDto {
         return new AppLanguagesDto([...this.languages, language], version);
     }
 
-    public updateLanguage(language: AppLanguageDto, version: Version) {
-        return new AppLanguagesDto(this.languages.map(l => l.iso2Code === language.iso2Code ? language : l), version);
+    public removeLanguage(language: AppLanguageDto, version: Version) {
+        return new AppLanguagesDto(
+            this.languages.filter(l => l.iso2Code !== language.iso2Code).map(l => {
+                return new AppLanguageDto(
+                    l.iso2Code,
+                    l.englishName,
+                    l.isMaster,
+                    l.isOptional,
+                    l.fallback.filter(f => f !== language.iso2Code));
+            }), version);
     }
 
-    public removeLanguage(language: AppLanguageDto, version: Version) {
-        return new AppLanguagesDto(this.languages.filter(l => l.iso2Code !== language.iso2Code), version);
+    public updateLanguage(language: AppLanguageDto, version: Version) {
+        return new AppLanguagesDto(
+            this.languages.map(l => {
+                if (l.iso2Code === language.iso2Code) {
+                    return language;
+                } else if (l.isMaster && language.isMaster) {
+                    return  new AppLanguageDto(l.iso2Code, l.englishName, false, l.isOptional, l.fallback);
+                } else {
+                    return l;
+                }
+            }), version);
     }
 }
 
@@ -124,7 +141,7 @@ export class AppLanguagesService {
                 .pretifyError('Failed to add language. Please reload.');
     }
 
-    public updateLanguage(appName: string, languageCode: string, dto: UpdateAppLanguageDto, version: Version): Observable<Versioned<any>> {
+    public putLanguage(appName: string, languageCode: string, dto: UpdateAppLanguageDto, version: Version): Observable<Versioned<any>> {
         const url = this.apiUrl.buildUrl(`api/apps/${appName}/languages/${languageCode}`);
 
         return HTTP.putVersioned(this.http, url, dto, version)

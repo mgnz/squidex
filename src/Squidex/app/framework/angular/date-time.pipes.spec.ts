@@ -2,16 +2,18 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { DateTime, Duration } from './../';
 
 import {
+    DatePipe,
     DayOfWeekPipe,
     DayPipe,
     DurationPipe,
     FromNowPipe,
+    FullDateTimePipe,
     MonthPipe,
     ShortDatePipe,
     ShortTimePipe
@@ -27,6 +29,17 @@ describe('DurationPipe', () => {
 
         const actual = pipe.transform(duration);
         const expected = '312:10h';
+
+        expect(actual).toBe(expected);
+    });
+});
+
+describe('FullDateTimePipe', () => {
+    it('should format to nice string', () => {
+        const pipe = new FullDateTimePipe();
+
+        const actual = pipe.transform(dateTime);
+        const expected = 'Thursday, October 3, 2013 12:13 PM';
 
         expect(actual).toBe(expected);
     });
@@ -76,12 +89,23 @@ describe('DayOfWeekPipe', () => {
     });
 });
 
+describe('DatePipe', () => {
+    it('should format to two digit day number and short month name and year', () => {
+        const pipe = new DatePipe();
+
+        const actual = pipe.transform(dateTime);
+        const expected = '03. Oct 2013';
+
+        expect(actual).toBe(expected);
+    });
+});
+
 describe('ShortDatePipe', () => {
     it('should format to two digit day number and short month name', () => {
         const pipe = new ShortDatePipe();
 
         const actual = pipe.transform(dateTime);
-        const expected = '03.Oct';
+        const expected = '03. Oct';
 
         expect(actual).toBe(expected);
     });

@@ -2,7 +2,7 @@
  * Squidex Headless CMS
  *
  * @license
- * Copyright (c) Sebastian Stehle. All rights reserved
+ * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
 import { Directive, ElementRef, EventEmitter, HostListener, Output, Renderer } from '@angular/core';
@@ -100,7 +100,7 @@ export class FileDropDirective {
 
 function isFunction(obj: any): boolean {
     return !!(obj && obj.constructor && obj.call && obj.apply);
-};
+}
 
 interface DragDropEvent extends MouseEvent {
     readonly dataTransfer: DataTransfer;

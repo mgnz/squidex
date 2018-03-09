@@ -1,14 +1,13 @@
 ﻿// ==========================================================================
-//  TypeNameRegistryTests.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
 using System.Reflection;
-using Squidex.Infrastructure.CQRS.Events;
+using Squidex.Infrastructure.EventSourcing;
 using Xunit;
 
 namespace Squidex.Infrastructure
@@ -54,7 +53,7 @@ namespace Squidex.Infrastructure
         [Fact]
         public void Should_register_from_assembly()
         {
-            sut.Map(typeof(TypeNameRegistryTests).GetTypeInfo().Assembly);
+            sut.MapUnmapped(typeof(TypeNameRegistryTests).GetTypeInfo().Assembly);
 
             Assert.Equal("my", sut.GetName<MyType>());
             Assert.Equal("my", sut.GetName(typeof(MyType)));
@@ -66,7 +65,7 @@ namespace Squidex.Infrastructure
         [Fact]
         public void Should_register_event_type_from_assembly()
         {
-            sut.Map(typeof(TypeNameRegistryTests).GetTypeInfo().Assembly);
+            sut.MapUnmapped(typeof(TypeNameRegistryTests).GetTypeInfo().Assembly);
 
             Assert.Equal("MyAddedEventV2", sut.GetName<MyAdded>());
             Assert.Equal("MyAddedEventV2", sut.GetName(typeof(MyAdded)));

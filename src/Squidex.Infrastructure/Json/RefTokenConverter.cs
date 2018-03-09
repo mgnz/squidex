@@ -1,9 +1,8 @@
 // ==========================================================================
-//  RefTokenConverter.cs
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex Group
-//  All rights reserved.
+//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
 using System;
@@ -11,21 +10,21 @@ using Newtonsoft.Json;
 
 namespace Squidex.Infrastructure.Json
 {
-    public sealed class RefTokenConverter : JsonConverter
+    public sealed class RefTokenConverter : JsonClassConverter<RefToken>
     {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        protected override void WriteValue(JsonWriter writer, RefToken value, JsonSerializer serializer)
         {
             writer.WriteValue(value.ToString());
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        protected override RefToken ReadValue(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
-            return reader.TokenType == JsonToken.Null ? null : RefToken.Parse((string)reader.Value);
-        }
+            if (reader.TokenType != JsonToken.String)
+            {
+                throw new JsonException($"Expected String, but got {reader.TokenType}.");
+            }
 
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(RefToken);
+            return RefToken.Parse(reader.Value.ToString());
         }
     }
 }
