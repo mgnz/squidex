@@ -18,13 +18,14 @@ using Squidex.Domain.Apps.Events.Apps;
 using Squidex.Infrastructure;
 using Squidex.Infrastructure.Commands;
 using Squidex.Infrastructure.EventSourcing;
+using Squidex.Infrastructure.Orleans;
 using Squidex.Infrastructure.Reflection;
 using Squidex.Infrastructure.States;
 using Squidex.Shared.Users;
 
 namespace Squidex.Domain.Apps.Entities.Apps
 {
-    public class AppGrain : DomainObjectGrain<AppState>
+    public class AppGrain : SquidexDomainObjectGrain<AppState>, IAppGrain
     {
         private readonly InitialPatterns initialPatterns;
         private readonly IAppProvider appProvider;
@@ -54,8 +55,10 @@ namespace Squidex.Domain.Apps.Entities.Apps
             this.initialPatterns = initialPatterns;
         }
 
-        public override Task<object> ExecuteAsync(IAggregateCommand command)
+        protected override Task<object> ExecuteAsync(IAggregateCommand command)
         {
+            VerifyNotArchived();
+
             switch (command)
             {
                 case CreateApp createApp:
@@ -67,11 +70,13 @@ namespace Squidex.Domain.Apps.Entities.Apps
                     });
 
                 case AssignContributor assigneContributor:
-                    return UpdateAsync(assigneContributor, async c =>
+                    return UpdateReturnAsync(assigneContributor, async c =>
                     {
                         await GuardAppContributors.CanAssign(Snapshot.Contributors, c, userResolver, appPlansProvider.GetPlan(Snapshot.Plan?.PlanId));
 
                         AssignContributor(c);
+
+                        return EntityCreatedResult.Create(c.ContributorId, NewVersion);
                     });
 
                 case RemoveContributor removeContributor:
@@ -178,6 +183,14 @@ namespace Squidex.Domain.Apps.Entities.Apps
                         }
                     });
 
+                case ArchiveApp archiveApp:
+                    return UpdateAsync(archiveApp, async c =>
+                    {
+                        await appPlansBillingManager.ChangePlanAsync(c.Actor.Identifier, Snapshot.Id, Snapshot.Name, null);
+
+                        ArchiveApp(c);
+                    });
+
                 default:
                     throw new NotSupportedException();
             }
@@ -276,6 +289,19 @@ namespace Squidex.Domain.Apps.Entities.Apps
             RaiseEvent(SimpleMapper.Map(command, new AppPatternUpdated()));
         }
 
+        public void ArchiveApp(ArchiveApp command)
+        {
+            RaiseEvent(SimpleMapper.Map(command, new AppArchived()));
+        }
+
+        private void VerifyNotArchived()
+        {
+            if (Snapshot.IsArchived)
+            {
+                throw new DomainException("App has already been archived.");
+            }
+        }
+
         private void RaiseEvent(AppEvent @event)
         {
             if (@event.AppId == null)
@@ -309,6 +335,11 @@ namespace Squidex.Domain.Apps.Entities.Apps
         public override void ApplyEvent(Envelope<IEvent> @event)
         {
             ApplySnapshot(Snapshot.Apply(@event));
+        }
+
+        public Task<J<IAppEntity>> GetStateAsync()
+        {
+            return Task.FromResult(new J<IAppEntity>(Snapshot));
         }
     }
 }

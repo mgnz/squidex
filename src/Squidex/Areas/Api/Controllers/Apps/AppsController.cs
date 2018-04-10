@@ -83,7 +83,7 @@ namespace Squidex.Areas.Api.Controllers.Apps
         /// <param name="request">The app object that needs to be added to squidex.</param>
         /// <returns>
         /// 201 => App created.
-        /// 400 => App object is not valid.
+        /// 400 => App request not valid.
         /// 409 => App name is already in use.
         /// </returns>
         /// <remarks>
@@ -99,7 +99,6 @@ namespace Squidex.Areas.Api.Controllers.Apps
         public async Task<IActionResult> PostApp([FromBody] CreateAppDto request)
         {
             var command = SimpleMapper.Map(request, new CreateApp());
-
             var context = await CommandBus.PublishAsync(command);
 
             var result = context.Result<EntityCreatedResult<Guid>>();
@@ -111,6 +110,26 @@ namespace Squidex.Areas.Api.Controllers.Apps
             response.PlanUpgrade = appPlansProvider.GetPlanUpgrade(null)?.Name;
 
             return CreatedAtAction(nameof(GetApps), response);
+        }
+
+        /// <summary>
+        /// Archive the app.
+        /// /// </summary>
+        /// <param name="app">The name of the app to archive.</param>
+        /// <returns>
+        /// 204 => App archived.
+        /// 404 => App not found.
+        /// </returns>
+        [HttpDelete]
+        [Route("apps/{app}/")]
+        [AppApi]
+        [ApiCosts(1)]
+        [MustBeAppOwner]
+        public async Task<IActionResult> DeleteApp(string app)
+        {
+            await CommandBus.PublishAsync(new ArchiveApp());
+
+            return NoContent();
         }
     }
 }

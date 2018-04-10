@@ -17,11 +17,13 @@ import {
 } from 'shared';
 
 import {
+    BackupsPageComponent,
     ClientComponent,
     ClientsPageComponent,
     ContributorsPageComponent,
     LanguageComponent,
     LanguagesPageComponent,
+    MorePageComponent,
     PatternComponent,
     PatternsPageComponent,
     PlansPageComponent,
@@ -39,6 +41,14 @@ const routes: Routes = [
             {
                 path: 'plans',
                 component: PlansPageComponent
+            },
+            {
+                path: 'more',
+                component: MorePageComponent
+            },
+            {
+                path: 'backups',
+                component: BackupsPageComponent
             },
             {
                 path: 'clients',
@@ -132,11 +142,13 @@ const routes: Routes = [
         RouterModule.forChild(routes)
     ],
     declarations: [
+        BackupsPageComponent,
         ClientComponent,
         ClientsPageComponent,
         ContributorsPageComponent,
         LanguageComponent,
         LanguagesPageComponent,
+        MorePageComponent,
         PatternComponent,
         PatternsPageComponent,
         PlansPageComponent,

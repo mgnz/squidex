@@ -3,6 +3,7 @@ Param(
 	[switch]$appsCore,
 	[switch]$appsEntities,
 	[switch]$users,
+	[switch]$web,
 	[switch]$all
 )
 
@@ -47,7 +48,7 @@ if ($all -Or $appsEntities) {
 	-register:user `
 	-target:"C:\Program Files\dotnet\dotnet.exe" `
 	-targetargs:"test $folderWorking\Squidex.Domain.Apps.Entities.Tests\Squidex.Domain.Apps.Entities.Tests.csproj" `
-	-filter:"+[Squidex.Domain.Apps.Entities*]*" `
+	-filter:"+[Squidex.Domain.Apps.Entities*]* -[Squidex.Domain.Apps.Entities*]*CodeGen*" `
 	-skipautoprops `
 	-output:"$folderWorking\$folderReports\Entities.xml" `
 	-oldStyle
@@ -61,6 +62,17 @@ if ($all -Or $users) {
 	-filter:"+[Squidex.Domain.Users*]*" `
 	-skipautoprops `
 	-output:"$folderWorking\$folderReports\Users.xml" `
+	-oldStyle
+}
+
+if ($all -Or $web) {
+	&"$folderHome\.nuget\packages\OpenCover\4.6.519\tools\OpenCover.Console.exe" `
+	-register:user `
+	-target:"C:\Program Files\dotnet\dotnet.exe" `
+	-targetargs:"test $folderWorking\Squidex.Tests\Squidex.Tests.csproj" `
+	-filter:"+[Squidex]Squidex.Pipeline*" `
+	-skipautoprops `
+	-output:"$folderWorking\$folderReports\Web.xml" `
 	-oldStyle
 }
 

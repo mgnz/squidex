@@ -15,7 +15,7 @@ namespace Squidex.Areas.Api.Controllers.Apps.Models
     public sealed class AssignAppContributorDto
     {
         /// <summary>
-        /// The id of the user to add to the app.
+        /// The id or email of the user to add to the app.
         /// </summary>
         [Required]
         public string ContributorId { get; set; }

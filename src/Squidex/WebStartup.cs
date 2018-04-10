@@ -13,8 +13,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Squidex.Areas.Api;
 using Squidex.Areas.Frontend;
 using Squidex.Areas.IdentityServer;
+using Squidex.Areas.OrleansDashboard;
 using Squidex.Areas.Portal;
 using Squidex.Config.Domain;
+using Squidex.Config.Orleans;
 using Squidex.Config.Web;
 
 namespace Squidex
@@ -30,6 +32,8 @@ namespace Squidex
 
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
+            services.AddOrleansSilo();
+            services.AddOrleansClient();
             services.AddAppServices(configuration);
 
             return services.BuildServiceProvider();
@@ -38,9 +42,9 @@ namespace Squidex
         public void Configure(IApplicationBuilder app)
         {
             app.ApplicationServices.LogConfiguration();
-            app.ApplicationServices.InitializeAll();
-            app.ApplicationServices.Migrate();
-            app.ApplicationServices.RunAll();
+            app.ApplicationServices.RunInitialization();
+            app.ApplicationServices.RunMigrate();
+            app.ApplicationServices.RunRunnables();
 
             app.UseMyCors();
             app.UseMyForwardingRules();
@@ -48,8 +52,8 @@ namespace Squidex
 
             app.ConfigureApi();
             app.ConfigurePortal();
+            app.ConfigureOrleansDashboard();
             app.ConfigureIdentityServer();
-
             app.ConfigureFrontend();
         }
     }

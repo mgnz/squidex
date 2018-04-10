@@ -42,11 +42,11 @@ namespace Squidex.Domain.Apps.Entities.Schemas
             fieldId = new NamedId<long>(1, fieldName);
 
             sut = new SchemaGrain(Store, appProvider, registry);
-            sut.ActivateAsync(Id).Wait();
+            sut.OnActivateAsync(Id).Wait();
         }
 
         [Fact]
-        public async Task Command_should_throw_exception_if_rule_is_deleted()
+        public async Task Command_should_throw_exception_if_schema_is_deleted()
         {
             await ExecuteCreateAsync();
             await ExecuteDeleteAsync();

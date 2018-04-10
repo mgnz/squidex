@@ -18,6 +18,7 @@ using Squidex.Domain.Apps.Entities.Apps.Repositories;
 using Squidex.Domain.Apps.Entities.Apps.State;
 using Squidex.Domain.Apps.Entities.Assets.Repositories;
 using Squidex.Domain.Apps.Entities.Assets.State;
+using Squidex.Domain.Apps.Entities.Backup.State;
 using Squidex.Domain.Apps.Entities.Contents.Repositories;
 using Squidex.Domain.Apps.Entities.Contents.State;
 using Squidex.Domain.Apps.Entities.History;
@@ -69,19 +70,12 @@ namespace Squidex.Config.Domain
                         .As<IMigrationStatus>()
                         .As<IInitializable>();
 
+                    services.AddSingletonAs(c => new MongoSnapshotStore<BackupState, Guid>(mongoDatabase, c.GetRequiredService<JsonSerializer>()))
+                        .As<ISnapshotStore<BackupState, Guid>>()
+                        .As<IInitializable>();
+
                     services.AddSingletonAs(c => new MongoSnapshotStore<EventConsumerState, string>(mongoDatabase, c.GetRequiredService<JsonSerializer>()))
                         .As<ISnapshotStore<EventConsumerState, string>>()
-                        .As<IInitializable>();
-
-                    services.AddSingletonAs(c => new MongoUserStore(mongoDatabase))
-                        .As<IUserStore<IUser>>()
-                        .As<IUserFactory>()
-                        .As<IUserResolver>()
-                        .As<IInitializable>();
-
-                    services.AddSingletonAs(c => new MongoRoleStore(mongoDatabase))
-                        .As<IRoleStore<IRole>>()
-                        .As<IRoleFactory>()
                         .As<IInitializable>();
 
                     services.AddSingletonAs(c => new MongoPersistedGrantStore(mongoDatabase))
@@ -94,6 +88,17 @@ namespace Squidex.Config.Domain
 
                     services.AddSingletonAs(c => new MongoRuleEventRepository(mongoDatabase))
                         .As<IRuleEventRepository>()
+                        .As<IInitializable>();
+
+                    services.AddSingletonAs(c => new MongoUserStore(mongoDatabase))
+                        .As<IUserStore<IUser>>()
+                        .As<IUserFactory>()
+                        .As<IUserResolver>()
+                        .As<IInitializable>();
+
+                    services.AddSingletonAs(c => new MongoRoleStore(mongoDatabase))
+                        .As<IRoleStore<IRole>>()
+                        .As<IRoleFactory>()
                         .As<IInitializable>();
 
                     services.AddSingletonAs(c => new MongoAppRepository(mongoDatabase))
@@ -133,6 +138,8 @@ namespace Squidex.Config.Domain
                         .As<IInitializable>();
                 }
             });
+
+            services.AddSingleton(typeof(IStore<>), typeof(Store<>));
         }
     }
 }

@@ -60,7 +60,7 @@ namespace Squidex.Areas.Api.Controllers.Statistics
         [ApiCosts(0)]
         public async Task<IActionResult> GetMonthlyCalls(string app)
         {
-            var count = await usageTracker.GetMonthlyCalls(App.Id.ToString(), DateTime.Today);
+            var count = await usageTracker.GetMonthlyCallsAsync(App.Id.ToString(), DateTime.Today);
 
             var plan = appPlanProvider.GetPlanForApp(App);
 
@@ -130,8 +130,8 @@ namespace Squidex.Areas.Api.Controllers.Statistics
         /// <param name="toDate">The to date.</param>
         /// <returns>
         /// 200 => Storage usage returned.
-        /// 404 => App not found.
         /// 400 => Range between from date and to date is not valid or has more than 100 days.
+        /// 404 => App not found.
         /// </returns>
         [HttpGet]
         [Route("apps/{app}/usages/storage/{fromDate}/{toDate}/")]
