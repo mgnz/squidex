@@ -9,7 +9,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import 'framework/angular/http-extensions';
+import '@app/framework/angular/http/http-extensions';
 
 import {
     AnalyticsService,
@@ -18,7 +18,7 @@ import {
     HTTP,
     Version,
     Versioned
-} from 'framework';
+} from '@app/framework';
 
 export class ContentsDto {
     constructor(
@@ -42,60 +42,6 @@ export class ContentDto {
         public readonly data: any,
         public readonly version: Version
     ) {
-    }
-
-    public setData(data: any): ContentDto {
-        return new ContentDto(
-            this.id,
-            this.status,
-            this.createdBy,
-            this.lastModifiedBy,
-            this.created,
-            this.lastModified,
-            this.scheduledTo,
-            this.scheduledBy,
-            this.scheduledAt,
-            data,
-            this.version);
-    }
-
-    public changeStatus(status: string, dueTime: DateTime | null, user: string, version: Version, now?: DateTime): ContentDto {
-        if (dueTime) {
-            return new ContentDto(
-                this.id,
-                this.status,
-                this.createdBy, user,
-                this.created, now || DateTime.now(),
-                status,
-                user,
-                dueTime,
-                this.data,
-                version);
-        } else {
-            return new ContentDto(
-                this.id,
-                status,
-                this.createdBy, user,
-                this.created, now || DateTime.now(),
-                null,
-                null,
-                null,
-                this.data,
-                version);
-        }
-    }
-
-    public update(data: any, user: string, version: Version, now?: DateTime): ContentDto {
-        return new ContentDto(
-            this.id,
-            this.status,
-            this.createdBy, user,
-            this.created, now || DateTime.now(),
-            this.scheduledTo,
-            this.scheduledBy,
-            this.scheduledAt,
-            data,
-            version);
     }
 }
 
