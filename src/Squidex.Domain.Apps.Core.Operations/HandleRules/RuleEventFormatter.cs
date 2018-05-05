@@ -5,9 +5,12 @@
 //  All rights reserved. Licensed under the MIT license.
 // =========================================-=================================
 
+using System;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Squidex.Domain.Apps.Core.Contents;
@@ -15,6 +18,7 @@ using Squidex.Domain.Apps.Events;
 using Squidex.Domain.Apps.Events.Contents;
 using Squidex.Infrastructure;
 using Squidex.Infrastructure.EventSourcing;
+using Squidex.Shared.Users;
 
 namespace Squidex.Domain.Apps.Core.HandleRules
 {
@@ -28,14 +32,27 @@ namespace Squidex.Domain.Apps.Core.HandleRules
         private const string TimestampDatePlaceholder = "$TIMESTAMP_DATE";
         private const string TimestampDateTimePlaceholder = "$TIMESTAMP_DATETIME";
         private const string ContentActionPlaceholder = "$CONTENT_ACTION";
+        private const string ContentUrlPlaceholder = "$CONTENT_URL";
+        private const string UserNamePlaceholder = "$USER_NAME";
+        private const string UserEmailPlaceholder = "$USER_EMAIL";
         private static readonly Regex ContentDataPlaceholder = new Regex(@"\$CONTENT_DATA(\.([0-9A-Za-z\-_]*)){2,}", RegexOptions.Compiled);
+        private static readonly TimeSpan UserCacheDuration = TimeSpan.FromMinutes(10);
         private readonly JsonSerializer serializer;
+        private readonly IRuleUrlGenerator urlGenerator;
+        private readonly IMemoryCache memoryCache;
+        private readonly IUserResolver userResolver;
 
-        public RuleEventFormatter(JsonSerializer serializer)
+        public RuleEventFormatter(JsonSerializer serializer, IRuleUrlGenerator urlGenerator, IMemoryCache memoryCache, IUserResolver userResolver)
         {
+            Guard.NotNull(memoryCache, nameof(memoryCache));
             Guard.NotNull(serializer, nameof(serializer));
+            Guard.NotNull(urlGenerator, nameof(urlGenerator));
+            Guard.NotNull(userResolver, nameof(userResolver));
 
+            this.memoryCache = memoryCache;
             this.serializer = serializer;
+            this.userResolver = userResolver;
+            this.urlGenerator = urlGenerator;
         }
 
         public virtual JToken ToRouteData(object value)
@@ -51,7 +68,7 @@ namespace Squidex.Domain.Apps.Core.HandleRules
                 new JProperty("timestamp", @event.Headers.Timestamp().ToString()));
         }
 
-        public virtual string FormatString(string text, Envelope<AppEvent> @event)
+        public async virtual Task<string> FormatStringAsync(string text, Envelope<AppEvent> @event)
         {
             var sb = new StringBuilder(text);
 
@@ -75,6 +92,13 @@ namespace Squidex.Domain.Apps.Core.HandleRules
                 sb.Replace(SchemaNamePlaceholder, schemaEvent.SchemaId.Name);
             }
 
+            if (@event.Payload is ContentEvent contentEvent)
+            {
+                sb.Replace(ContentUrlPlaceholder, urlGenerator.GenerateContentUIUrl(@event.Payload.AppId, contentEvent.SchemaId, contentEvent.ContentId));
+            }
+
+            await FormatUserInfoAsync(@event, sb);
+
             FormatContentAction(@event, sb);
 
             var result = sb.ToString();
@@ -90,6 +114,39 @@ namespace Squidex.Domain.Apps.Core.HandleRules
             }
 
             return result;
+        }
+
+        private async Task FormatUserInfoAsync(Envelope<AppEvent> @event, StringBuilder sb)
+        {
+            var text = sb.ToString();
+
+            if (text.Contains(UserEmailPlaceholder) || text.Contains(UserNamePlaceholder))
+            {
+                var actor = @event.Payload.Actor;
+
+                if (actor.Type.Equals("client", StringComparison.OrdinalIgnoreCase))
+                {
+                    var displayText = actor.ToString();
+
+                    sb.Replace(UserEmailPlaceholder, displayText);
+                    sb.Replace(UserNamePlaceholder, displayText);
+                }
+                else
+                {
+                    var user = await FindUserAsync(actor);
+
+                    if (user != null)
+                    {
+                        sb.Replace(UserEmailPlaceholder, user.Email);
+                        sb.Replace(UserNamePlaceholder, user.DisplayName());
+                    }
+                    else
+                    {
+                        sb.Replace(UserEmailPlaceholder, Undefined);
+                        sb.Replace(UserNamePlaceholder, Undefined);
+                    }
+                }
+            }
         }
 
         private static void FormatContentAction(Envelope<AppEvent> @event, StringBuilder sb)
@@ -164,6 +221,25 @@ namespace Squidex.Domain.Apps.Core.HandleRules
                 }
 
                 return value?.ToString(Formatting.Indented) ?? Undefined;
+            });
+        }
+
+        private Task<IUser> FindUserAsync(RefToken actor)
+        {
+            var key = $"RuleEventFormatter_Users_${actor.Identifier}";
+
+            return memoryCache.GetOrCreateAsync(key, async x =>
+            {
+                x.AbsoluteExpirationRelativeToNow = UserCacheDuration;
+
+                try
+                {
+                    return await userResolver.FindByIdOrEmailAsync(actor.Identifier);
+                }
+                catch
+                {
+                    return null;
+                }
             });
         }
     }

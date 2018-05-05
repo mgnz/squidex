@@ -1,16 +1,14 @@
 ﻿// ==========================================================================
 //  Squidex Headless CMS
 // ==========================================================================
-//  Copyright (c) Squidex UG (haftungsbeschränkt)
+//  Copyright (c) Squidex UG (haftungsbeschraenkt)
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
-
-namespace Squidex.Domain.Apps.Core.Rules
+namespace Squidex.Infrastructure.Orleans
 {
-    public sealed class RuleJobData : Dictionary<string, JToken>
+    public static class SingleGrain
     {
+        public const string Id = "Default";
     }
 }

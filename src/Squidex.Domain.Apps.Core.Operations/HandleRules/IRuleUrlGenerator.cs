@@ -5,18 +5,13 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using NodaTime;
-using Squidex.Domain.Apps.Core.Contents;
+using System;
 using Squidex.Infrastructure;
 
-namespace Squidex.Domain.Apps.Entities.Contents
+namespace Squidex.Domain.Apps.Core.HandleRules
 {
-    public interface IContentScheduleItem
+    public interface IRuleUrlGenerator
     {
-        Status ScheduledTo { get; }
-
-        Instant ScheduledAt { get; }
-
-        RefToken ScheduledBy { get; }
+        string GenerateContentUIUrl(NamedId<Guid> appId, NamedId<Guid> schemaId, Guid contentId);
     }
 }

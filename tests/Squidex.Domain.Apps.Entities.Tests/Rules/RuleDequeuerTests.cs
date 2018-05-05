@@ -8,6 +8,7 @@
 using System;
 using System.Threading.Tasks;
 using FakeItEasy;
+using Newtonsoft.Json.Linq;
 using NodaTime;
 using Squidex.Domain.Apps.Core.HandleRules;
 using Squidex.Domain.Apps.Core.Rules;
@@ -22,7 +23,7 @@ namespace Squidex.Domain.Apps.Entities.Rules
     public class RuleDequeuerTests
     {
         private readonly IClock clock = A.Fake<IClock>();
-        private readonly ISemanticLog log = A.Fake<ISemanticLog>();
+        private readonly ISemanticLog log = A.Dummy<ISemanticLog>();
         private readonly IAppProvider appProvider = A.Fake<IAppProvider>();
         private readonly IRuleEventRepository ruleEventRepository = A.Fake<IRuleEventRepository>();
         private readonly Instant now = SystemClock.Instance.GetCurrentInstant();
@@ -49,7 +50,7 @@ namespace Squidex.Domain.Apps.Entities.Rules
         [InlineData(4, 0,   RuleResult.Failed,  RuleJobResult.Failed)]
         public async Task Should_set_next_attempt_based_on_num_calls(int calls, int minutes, RuleResult result, RuleJobResult jobResult)
         {
-            var actionData = new RuleJobData();
+            var actionData = new JObject();
             var actionName = "MyAction";
 
             var @event = CreateEvent(calls, actionName, actionData);
@@ -73,7 +74,7 @@ namespace Squidex.Domain.Apps.Entities.Rules
                 .MustHaveHappened();
         }
 
-        private IRuleEventEntity CreateEvent(int numCalls, string actionName, RuleJobData actionData)
+        private IRuleEventEntity CreateEvent(int numCalls, string actionName, JObject actionData)
         {
             var @event = A.Fake<IRuleEventEntity>();
 

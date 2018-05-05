@@ -13,10 +13,12 @@ using Migrate_01;
 using Migrate_01.Migrations;
 using Orleans;
 using Squidex.Domain.Apps.Core.Apps;
+using Squidex.Domain.Apps.Core.HandleRules;
 using Squidex.Domain.Apps.Core.Scripting;
 using Squidex.Domain.Apps.Entities;
 using Squidex.Domain.Apps.Entities.Apps;
 using Squidex.Domain.Apps.Entities.Apps.Commands;
+using Squidex.Domain.Apps.Entities.Apps.Indexes;
 using Squidex.Domain.Apps.Entities.Apps.Templates;
 using Squidex.Domain.Apps.Entities.Assets;
 using Squidex.Domain.Apps.Entities.Backup;
@@ -27,7 +29,9 @@ using Squidex.Domain.Apps.Entities.Contents.GraphQL;
 using Squidex.Domain.Apps.Entities.History;
 using Squidex.Domain.Apps.Entities.Rules;
 using Squidex.Domain.Apps.Entities.Rules.Commands;
+using Squidex.Domain.Apps.Entities.Rules.Indexes;
 using Squidex.Domain.Apps.Entities.Schemas;
+using Squidex.Domain.Apps.Entities.Schemas.Indexes;
 using Squidex.Infrastructure.Assets;
 using Squidex.Infrastructure.Commands;
 using Squidex.Infrastructure.Migrations;
@@ -42,11 +46,12 @@ namespace Squidex.Config.Domain
         {
             var exposeSourceUrl = config.GetOptionalValue("assetStore:exposeSourceUrl", true);
 
-            services.AddSingletonAs(c => new GraphQLUrlGenerator(
+            services.AddSingletonAs(c => new UrlGenerator(
                     c.GetRequiredService<IOptions<MyUrlsOptions>>(),
                     c.GetRequiredService<IAssetStore>(),
                     exposeSourceUrl))
-                .As<IGraphQLUrlGenerator>();
+                .As<IGraphQLUrlGenerator>()
+                .As<IRuleUrlGenerator>();
 
             services.AddSingletonAs<CachingGraphQLService>()
                 .As<IGraphQLService>();
@@ -59,6 +64,9 @@ namespace Squidex.Config.Domain
 
             services.AddSingletonAs<ContentQueryService>()
                 .As<IContentQueryService>();
+
+            services.AddSingletonAs<ContentVersionLoader>()
+                .As<IContentVersionLoader>();
 
             services.AddSingletonAs<AppHistoryEventsCreator>()
                 .As<IHistoryEventsCreator>();
@@ -111,25 +119,22 @@ namespace Squidex.Config.Domain
             services.AddSingletonAs<CreateProfileCommandMiddleware>()
                 .As<ICommandMiddleware>();
 
+            services.AddSingletonAs<AppsByNameIndexCommandMiddleware>()
+                .As<ICommandMiddleware>();
+
+            services.AddSingletonAs<AppsByUserIndexCommandMiddleware>()
+                .As<ICommandMiddleware>();
+
+            services.AddSingletonAs<RulesByAppIndexCommandMiddleware>()
+                .As<ICommandMiddleware>();
+
+            services.AddSingletonAs<SchemasByAppIndexCommandMiddleware>()
+                .As<ICommandMiddleware>();
+
             services.AddSingletonAs<JintScriptEngine>()
                 .As<IScriptEngine>();
 
             services.AddSingleton<Func<IGrainCallContext, string>>(DomainObjectGrainFormatter.Format);
-
-            services.AddTransientAs<AppGrain>()
-                .AsSelf();
-
-            services.AddTransientAs<AssetGrain>()
-                .AsSelf();
-
-            services.AddTransientAs<ContentGrain>()
-                .AsSelf();
-
-            services.AddTransientAs<RuleGrain>()
-                .AsSelf();
-
-            services.AddTransientAs<SchemaGrain>()
-                .AsSelf();
 
             services.AddSingleton(c =>
             {
@@ -158,13 +163,19 @@ namespace Squidex.Config.Domain
             services.AddTransientAs<MigrationPath>()
                 .As<IMigrationPath>();
 
+            services.AddTransientAs<AddPatterns>()
+                .As<IMigration>();
+
             services.AddTransientAs<ConvertEventStore>()
                 .As<IMigration>();
 
             services.AddTransientAs<ConvertEventStoreAppId>()
                 .As<IMigration>();
 
-            services.AddTransientAs<AddPatterns>()
+            services.AddTransientAs<DeleteArchiveCollectionSetup>()
+                .As<IMigration>();
+
+            services.AddTransientAs<PopulateGrainIndexes>()
                 .As<IMigration>();
 
             services.AddTransientAs<RebuildContents>()
