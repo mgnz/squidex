@@ -7,8 +7,8 @@
 .vscode
 
 # Build results
-build/
 bin/
+build/
 obj/
 publish/
 
@@ -23,6 +23,10 @@ node_modules/
 
 # Hide default asset folder
 /src/Squidex/Assets
+/src/Squidex/package-lock.json
+/src/Squidex/Properties/launchSettings.json
+
+/global.json
 
 # hide pretend secrets
 /src/Squidex/appsettings.*.secrets.json

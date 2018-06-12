@@ -112,8 +112,8 @@ export class RichEditorComponent implements ControlValueAccessor, AfterViewInit,
         };
     }
 
-    public writeValue(value: string) {
-        this.value = Types.isString(value) ? value : '';
+    public writeValue(obj: any) {
+        this.value = Types.isString(obj) ? obj : '';
 
         if (this.tinyEditor) {
             this.tinyEditor.setContent(this.value);

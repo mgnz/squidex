@@ -7,7 +7,8 @@
 
 import { Component, ContentChild, forwardRef, Input, OnDestroy, OnInit, TemplateRef } from '@angular/core';
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, of, Subscription } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, filter, map, switchMap, tap } from 'rxjs/operators';
 
 export interface AutocompleteSource {
     find(query: string): Observable<any[]>;
@@ -60,21 +61,22 @@ export class AutocompleteComponent implements ControlValueAccessor, OnDestroy, O
 
     public ngOnInit() {
         this.subscription =
-            this.queryInput.valueChanges
-                .do(query => {
-                    this.callChange(query);
-                })
-                .map(query => <string>query)
-                .map(query => query ? query.trim() : query)
-                .do(query => {
-                    if (!query) {
-                        this.reset();
-                    }
-                })
-                .distinctUntilChanged()
-                .debounceTime(200)
-                .filter(query => !!query && !!this.source)
-                .switchMap(query => this.source.find(query)).catch(error => Observable.of([]))
+            this.queryInput.valueChanges.pipe(
+                    tap(query => {
+                        this.callChange(query);
+                    }),
+                    map(query => <string>query),
+                    map(query => query ? query.trim() : query),
+                    tap(query => {
+                        if (!query) {
+                            this.reset();
+                        }
+                    }),
+                    distinctUntilChanged(),
+                    debounceTime(200),
+                    filter(query => !!query && !!this.source),
+                    switchMap(query => this.source.find(query)),
+                    catchError(error => of([])))
                 .subscribe(items => {
                     this.reset();
                     this.items = items || [];
@@ -104,14 +106,14 @@ export class AutocompleteComponent implements ControlValueAccessor, OnDestroy, O
         return true;
     }
 
-    public writeValue(value: any) {
-        if (!value) {
+    public writeValue(obj: any) {
+        if (!obj) {
             this.resetForm();
         } else {
-            const item = this.items.find(i => i === value);
+            const item = this.items.find(i => i === obj);
 
             if (item) {
-                this.queryInput.setValue(value.title || '');
+                this.queryInput.setValue(obj.title || '');
             }
         }
 

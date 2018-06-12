@@ -8,6 +8,7 @@
 import { Component, Injectable, OnInit } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { Observable } from 'rxjs';
+import { filter, onErrorResumeNext, withLatestFrom } from 'rxjs/operators';
 
 import {
     AppContributorDto,
@@ -15,6 +16,7 @@ import {
     AssignContributorForm,
     AutocompleteSource,
     ContributorsState,
+    Types,
     UserDto,
     UsersService
 } from '@app/shared';
@@ -28,8 +30,8 @@ export class UsersDataSource implements AutocompleteSource {
     }
 
     public find(query: string): Observable<any[]> {
-        return this.usersService.getUsers(query)
-            .withLatestFrom(this.contributorsState.contributors.filter(x => !!x), (users, contributors) => {
+        return this.usersService.getUsers(query).pipe(
+            withLatestFrom(this.contributorsState.contributors.pipe(filter(x => !!x)), (users, contributors) => {
                 const results: any[] = [];
 
                 for (let user of users) {
@@ -38,7 +40,7 @@ export class UsersDataSource implements AutocompleteSource {
                     }
                 }
                 return results;
-            });
+            }));
     }
 }
 
@@ -64,19 +66,19 @@ export class ContributorsPageComponent implements OnInit {
     }
 
     public ngOnInit() {
-        this.contributorsState.load().onErrorResumeNext().subscribe();
+        this.contributorsState.load().pipe(onErrorResumeNext()).subscribe();
     }
 
     public reload() {
-        this.contributorsState.load(true).onErrorResumeNext().subscribe();
+        this.contributorsState.load(true).pipe(onErrorResumeNext()).subscribe();
     }
 
     public remove(contributor: AppContributorDto) {
-        this.contributorsState.revoke(contributor).onErrorResumeNext().subscribe();
+        this.contributorsState.revoke(contributor).pipe(onErrorResumeNext()).subscribe();
     }
 
     public changePermission(contributor: AppContributorDto, permission: string) {
-        this.contributorsState.assign(new AppContributorDto(contributor.contributorId, permission)).onErrorResumeNext().subscribe();
+        this.contributorsState.assign(new AppContributorDto(contributor.contributorId, permission)).pipe(onErrorResumeNext()).subscribe();
     }
 
     public assignContributor() {
@@ -85,7 +87,7 @@ export class ContributorsPageComponent implements OnInit {
         if (value) {
             let user = value.user;
 
-            if (user instanceof UserDto) {
+            if (Types.is(user, UserDto)) {
                 user = user.id;
             }
 
