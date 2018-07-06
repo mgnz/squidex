@@ -5,11 +5,13 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
+using System.Security;
 using System.Threading.Tasks;
 using FakeItEasy;
 using Squidex.Domain.Apps.Core.Apps;
 using Squidex.Domain.Apps.Entities.Apps.Commands;
 using Squidex.Domain.Apps.Entities.Apps.Services;
+using Squidex.Domain.Apps.Entities.TestHelpers;
 using Squidex.Infrastructure;
 using Squidex.Shared.Users;
 using Xunit;
@@ -53,7 +55,8 @@ namespace Squidex.Domain.Apps.Entities.Apps.Guards
         {
             var command = new AssignContributor();
 
-            return Assert.ThrowsAsync<ValidationException>(() => GuardAppContributors.CanAssign(contributors_0, command, users, appPlan));
+            return ValidationAssert.ThrowsAsync(() => GuardAppContributors.CanAssign(contributors_0, command, users, appPlan),
+                new ValidationError("Contributor id is required.", "ContributorId"));
         }
 
         [Fact]
@@ -61,7 +64,8 @@ namespace Squidex.Domain.Apps.Entities.Apps.Guards
         {
             var command = new AssignContributor { ContributorId = "1", Permission = (AppContributorPermission)10 };
 
-            return Assert.ThrowsAsync<ValidationException>(() => GuardAppContributors.CanAssign(contributors_0, command, users, appPlan));
+            return ValidationAssert.ThrowsAsync(() => GuardAppContributors.CanAssign(contributors_0, command, users, appPlan),
+                new ValidationError("Permission is not valid.", "Permission"));
         }
 
         [Fact]
@@ -71,7 +75,8 @@ namespace Squidex.Domain.Apps.Entities.Apps.Guards
 
             var contributors_1 = contributors_0.Assign("1", AppContributorPermission.Owner);
 
-            return Assert.ThrowsAsync<ValidationException>(() => GuardAppContributors.CanAssign(contributors_1, command, users, appPlan));
+            return ValidationAssert.ThrowsAsync(() => GuardAppContributors.CanAssign(contributors_1, command, users, appPlan),
+                new ValidationError("Contributor has already this permission.", "Permission"));
         }
 
         [Fact]
@@ -79,15 +84,15 @@ namespace Squidex.Domain.Apps.Entities.Apps.Guards
         {
             var command = new AssignContributor { ContributorId = "notfound", Permission = (AppContributorPermission)10 };
 
-            return Assert.ThrowsAsync<ValidationException>(() => GuardAppContributors.CanAssign(contributors_0, command, users, appPlan));
+            return Assert.ThrowsAsync<DomainObjectNotFoundException>(() => GuardAppContributors.CanAssign(contributors_0, command, users, appPlan));
         }
 
         [Fact]
         public Task CanAssign_should_throw_exception_if_user_is_actor()
         {
-            var command = new AssignContributor { ContributorId = "3", Permission = (AppContributorPermission)10, Actor = new RefToken("user", "3") };
+            var command = new AssignContributor { ContributorId = "3", Permission = AppContributorPermission.Editor, Actor = new RefToken("user", "3") };
 
-            return Assert.ThrowsAsync<ValidationException>(() => GuardAppContributors.CanAssign(contributors_0, command, users, appPlan));
+            return Assert.ThrowsAsync<SecurityException>(() => GuardAppContributors.CanAssign(contributors_0, command, users, appPlan));
         }
 
         [Fact]
@@ -101,7 +106,8 @@ namespace Squidex.Domain.Apps.Entities.Apps.Guards
             var contributors_1 = contributors_0.Assign("1", AppContributorPermission.Owner);
             var contributors_2 = contributors_1.Assign("2", AppContributorPermission.Editor);
 
-            return Assert.ThrowsAsync<ValidationException>(() => GuardAppContributors.CanAssign(contributors_2, command, users, appPlan));
+            return ValidationAssert.ThrowsAsync(() => GuardAppContributors.CanAssign(contributors_2, command, users, appPlan),
+                new ValidationError("You have reached the maximum number of contributors for your plan."));
         }
 
         [Fact]
@@ -151,7 +157,8 @@ namespace Squidex.Domain.Apps.Entities.Apps.Guards
         {
             var command = new RemoveContributor();
 
-            Assert.Throws<ValidationException>(() => GuardAppContributors.CanRemove(contributors_0, command));
+            ValidationAssert.Throws(() => GuardAppContributors.CanRemove(contributors_0, command),
+                new ValidationError("Contributor id is required.", "ContributorId"));
         }
 
         [Fact]
@@ -170,7 +177,8 @@ namespace Squidex.Domain.Apps.Entities.Apps.Guards
             var contributors_1 = contributors_0.Assign("1", AppContributorPermission.Owner);
             var contributors_2 = contributors_1.Assign("2", AppContributorPermission.Editor);
 
-            Assert.Throws<ValidationException>(() => GuardAppContributors.CanRemove(contributors_2, command));
+            ValidationAssert.Throws(() => GuardAppContributors.CanRemove(contributors_2, command),
+                new ValidationError("Cannot remove the only owner."));
         }
 
         [Fact]
