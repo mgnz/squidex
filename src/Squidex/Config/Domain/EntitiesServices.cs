@@ -116,12 +116,6 @@ namespace Squidex.Config.Domain
             services.AddSingletonAs<GrainCommandMiddleware<RuleCommand, IRuleGrain>>()
                 .As<ICommandMiddleware>();
 
-            services.AddSingletonAs<CreateBlogCommandMiddleware>()
-                .As<ICommandMiddleware>();
-
-            services.AddSingletonAs<CreateProfileCommandMiddleware>()
-                .As<ICommandMiddleware>();
-
             services.AddSingletonAs<AppsByNameIndexCommandMiddleware>()
                 .As<ICommandMiddleware>();
 
@@ -132,6 +126,15 @@ namespace Squidex.Config.Domain
                 .As<ICommandMiddleware>();
 
             services.AddSingletonAs<SchemasByAppIndexCommandMiddleware>()
+                .As<ICommandMiddleware>();
+
+            services.AddSingletonAs<SingletonCommandMiddleware>()
+                .As<ICommandMiddleware>();
+
+            services.AddSingletonAs<CreateBlogCommandMiddleware>()
+                .As<ICommandMiddleware>();
+
+            services.AddSingletonAs<CreateProfileCommandMiddleware>()
                 .As<ICommandMiddleware>();
 
             services.AddSingletonAs<JintScriptEngine>()
@@ -185,6 +188,12 @@ namespace Squidex.Config.Domain
                 .As<IMigration>();
 
             services.AddTransientAs<RebuildAssets>()
+                .As<IMigration>();
+
+            services.AddTransientAs<StartEventConsumers>()
+                .As<IMigration>();
+
+            services.AddTransientAs<StopEventConsumers>()
                 .As<IMigration>();
 
             services.AddTransientAs<Rebuilder>()

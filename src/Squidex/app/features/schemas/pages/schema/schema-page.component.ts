@@ -5,6 +5,8 @@
  * Copyright (c) Squidex UG (haftungsbeschränkt). All rights reserved.
  */
 
+// tslint:disable:no-shadowed-variable
+
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -19,7 +21,8 @@ import {
     ModalView,
     PatternsState,
     SchemaDetailsDto,
-    SchemasState
+    SchemasState,
+    Types
 } from '@app/shared';
 
 import {
@@ -105,30 +108,46 @@ export class SchemaPageComponent implements OnDestroy, OnInit {
     }
 
     private export() {
+        const cleanup = (source: any, ...exclude: string[]): any => {
+            const clone = {};
+
+            for (const key in source) {
+                if (source.hasOwnProperty(key) && exclude.indexOf(key) < 0) {
+                    const value = source[key];
+
+                    if (value) {
+                        clone[key] = value;
+                    }
+                }
+            }
+
+            return clone;
+        };
+
         const result: any = {
             fields: this.schema.fields.map(field => {
-                const { fieldId, ...copy } = field;
+                const copy = cleanup(field, 'fieldId');
 
-                for (const key in copy.properties) {
-                    if (copy.properties.hasOwnProperty(key)) {
-                        if (!copy.properties[key]) {
-                            delete copy.properties[key];
-                        }
+                copy.properties = cleanup(field.properties);
+
+                if (Types.isArray(copy.nested)) {
+                    if (copy.nested.length === 0) {
+                        delete copy['nested'];
+                    } else {
+                        copy.nested = field.nested.map(nestedField => {
+                            const nestedCopy = cleanup(nestedField, 'fieldId', 'parentId');
+
+                            nestedCopy.properties = cleanup(nestedField.properties);
+
+                            return nestedCopy;
+                        });
                     }
                 }
 
                 return copy;
             }),
-            properties: {}
+            properties: cleanup(this.schema.properties)
         };
-
-        if (this.schema.properties.label) {
-            result.properties.label = this.schema.properties.label;
-        }
-
-        if (this.schema.properties.hints) {
-            result.properties.hints = this.schema.properties.hints;
-        }
 
         this.schemaExport = result;
     }

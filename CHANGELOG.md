@@ -1,12 +1,45 @@
 # Changelog
 
+## v1.8.0 - 2018-06-30
+
+### Features
+
+* **Schemas**: Singleton schemas (can only have single content)
+
+### Bugfixes
+
+* **UI**: Nested fields got wrong ids and names and could not be saved.
+* **Content**: Ensure that the content api returns content in correct order when querying by ids.
+
+## v1.7.0 - 2018-06-25
+
+* Migration to .NET Core 2.1
+
+## v1.6.2 - 2018-06-23
+
+### Features
+
+* **UI**: Better sortable with improved UX.
+* **Migration**: Increased performance.
+* **Migration**: Disable event handlers during migration.
+
+### Bugfixes
+
+* **Schemas**: Invariant name handling for field names.
+
+## v1.6.1 - 2018-06-22
+
+### Bugfixes
+
+* **MongoDB**: Fixed date time handling.
+
 ## v1.6.0 - 2018-06-07
 
 ### Features
 
-* **Schemas**: Nested Schemas**
-* **UI**: Migration to RxJS6
-* **UI**: Migration to Angular6
+* **Schemas**: Nested Schemas.
+* **UI**: Migration to RxJS6.
+* **UI**: Migration to Angular6.
 
 ## v1.5.0 - 2018-05-20
 
