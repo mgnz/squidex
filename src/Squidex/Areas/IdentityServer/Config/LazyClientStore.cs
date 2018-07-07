@@ -108,7 +108,7 @@ namespace Squidex.Areas.IdentityServer.Config
                     urlsOptions.BuildUrl("logout", false)
                 },
                 AllowAccessTokensViaBrowser = true,
-                AllowedGrantTypes = GrantTypes.Implicit,
+                AllowedGrantTypes = new[] { GrantType.Implicit, GrantType.ResourceOwnerPassword },
                 AllowedScopes = new List<string>
                 {
                     IdentityServerConstants.StandardScopes.OpenId,
@@ -134,7 +134,7 @@ namespace Squidex.Areas.IdentityServer.Config
                     urlsOptions.BuildUrl($"{Constants.OrleansPrefix}/signin-oidc", false)
                 },
                 AccessTokenLifetime = (int)TimeSpan.FromDays(30).TotalSeconds,
-                AllowedGrantTypes = GrantTypes.ImplicitAndClientCredentials,
+                AllowedGrantTypes = new[] { GrantType.Implicit, GrantType.ClientCredentials, GrantType.ResourceOwnerPassword },
                 AllowedScopes = new List<string>
                 {
                     IdentityServerConstants.StandardScopes.OpenId,
