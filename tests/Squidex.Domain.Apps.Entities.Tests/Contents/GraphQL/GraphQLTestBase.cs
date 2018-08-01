@@ -20,7 +20,6 @@ using Squidex.Domain.Apps.Core.Contents;
 using Squidex.Domain.Apps.Core.Schemas;
 using Squidex.Domain.Apps.Entities.Apps;
 using Squidex.Domain.Apps.Entities.Assets;
-using Squidex.Domain.Apps.Entities.Assets.Repositories;
 using Squidex.Domain.Apps.Entities.Contents.TestData;
 using Squidex.Domain.Apps.Entities.Schemas;
 using Squidex.Infrastructure;
@@ -38,7 +37,7 @@ namespace Squidex.Domain.Apps.Entities.Contents.GraphQL
         protected static readonly string appName = "my-app";
         protected readonly Schema schemaDef;
         protected readonly IContentQueryService contentQuery = A.Fake<IContentQueryService>();
-        protected readonly IAssetRepository assetRepository = A.Fake<IAssetRepository>();
+        protected readonly IAssetQueryService assetQuery = A.Fake<IAssetQueryService>();
         protected readonly ISchemaEntity schema = A.Fake<ISchemaEntity>();
         protected readonly IMemoryCache cache = new MemoryCache(Options.Create(new MemoryCacheOptions()));
         protected readonly IAppProvider appProvider = A.Fake<IAppProvider>();
@@ -91,7 +90,7 @@ namespace Squidex.Domain.Apps.Entities.Contents.GraphQL
 
             A.CallTo(() => appProvider.GetSchemasAsync(appId)).Returns(allSchemas);
 
-            sut = new CachingGraphQLService(cache, appProvider, assetRepository, contentQuery, new FakeUrlGenerator());
+            sut = new CachingGraphQLService(cache, appProvider, assetQuery, contentQuery, new FakeUrlGenerator());
         }
 
         protected static IContentEntity CreateContent(Guid id, Guid refId, Guid assetId, NamedContentData data = null)

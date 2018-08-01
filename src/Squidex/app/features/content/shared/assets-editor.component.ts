@@ -15,7 +15,7 @@ import {
     AssetDto,
     AssetsService,
     ImmutableArray,
-    ModalView,
+    ModalModel,
     Types
 } from '@app/shared';
 
@@ -35,7 +35,7 @@ export class AssetsEditorComponent implements ControlValueAccessor {
     private callChange = (v: any) => { /* NOOP */ };
     private callTouched = () => { /* NOOP */ };
 
-    public selectorModal = new ModalView();
+    public assetsDialog = new ModalModel();
 
     public newAssets = ImmutableArray.empty<File>();
     public oldAssets = ImmutableArray.empty<AssetDto>();
@@ -53,7 +53,7 @@ export class AssetsEditorComponent implements ControlValueAccessor {
             if (!Types.isEquals(obj, this.oldAssets.map(x => x.id).values)) {
                 const assetIds: string[] = obj;
 
-                this.assetsService.getAssets(this.appsState.appName, 0, 0, undefined, obj)
+                this.assetsService.getAssets(this.appsState.appName, 0, 0, undefined, undefined, obj)
                     .subscribe(dtos => {
                         this.oldAssets = ImmutableArray.of(assetIds.map(id => dtos.items.find(x => x.id === id)).filter(a => !!a).map(a => a!));
 
@@ -96,7 +96,7 @@ export class AssetsEditorComponent implements ControlValueAccessor {
             this.updateValue();
         }
 
-        this.selectorModal.hide();
+        this.assetsDialog.hide();
     }
 
     public onAssetRemoving(asset: AssetDto) {

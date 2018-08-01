@@ -21,6 +21,7 @@ using Squidex.Domain.Apps.Entities.Apps.Commands;
 using Squidex.Domain.Apps.Entities.Apps.Indexes;
 using Squidex.Domain.Apps.Entities.Apps.Templates;
 using Squidex.Domain.Apps.Entities.Assets;
+using Squidex.Domain.Apps.Entities.Assets.Commands;
 using Squidex.Domain.Apps.Entities.Backup;
 using Squidex.Domain.Apps.Entities.Contents;
 using Squidex.Domain.Apps.Entities.Contents.Commands;
@@ -32,6 +33,7 @@ using Squidex.Domain.Apps.Entities.Rules.Commands;
 using Squidex.Domain.Apps.Entities.Rules.Indexes;
 using Squidex.Domain.Apps.Entities.Schemas;
 using Squidex.Domain.Apps.Entities.Schemas.Indexes;
+using Squidex.Domain.Apps.Entities.Tags;
 using Squidex.Infrastructure.Assets;
 using Squidex.Infrastructure.Commands;
 using Squidex.Infrastructure.Migrations;
@@ -62,6 +64,9 @@ namespace Squidex.Config.Domain
             services.AddSingletonAs<AppProvider>()
                 .As<IAppProvider>();
 
+            services.AddSingletonAs<AssetQueryService>()
+                .As<IAssetQueryService>();
+
             services.AddSingletonAs<ContentQueryService>()
                 .As<IContentQueryService>();
 
@@ -79,6 +84,15 @@ namespace Squidex.Config.Domain
 
             services.AddSingletonAs<EdmModelBuilder>()
                 .AsSelf();
+
+            services.AddSingletonAs<GrainTagService>()
+                .As<ITagService>();
+
+            services.AddSingletonAs<FileTypeTagGenerator>()
+                .As<ITagGenerator<CreateAsset>>();
+
+            services.AddSingletonAs<ImageTagGenerator>()
+                .As<ITagGenerator<CreateAsset>>();
 
             services.AddSingletonAs<InMemoryCommandBus>()
                 .As<ICommandBus>();

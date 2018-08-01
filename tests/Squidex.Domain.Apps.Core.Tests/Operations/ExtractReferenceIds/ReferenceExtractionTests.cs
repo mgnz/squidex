@@ -6,7 +6,6 @@
 // ==========================================================================
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using Squidex.Domain.Apps.Core.Apps;
@@ -36,6 +35,8 @@ namespace Squidex.Domain.Apps.Core.Operations.ExtractReferenceIds
                     .AddNumber(3, "field3", Partitioning.Invariant)
                     .AddAssets(5, "assets1", Partitioning.Invariant)
                     .AddAssets(6, "assets2", Partitioning.Invariant)
+                    .AddArray(7, "array", Partitioning.Invariant, a => a
+                        .AddAssets(71, "assets71"))
                     .AddJson(4, "json", Partitioning.Language)
                     .UpdateField(3, f => f.Hide());
         }
@@ -140,7 +141,7 @@ namespace Squidex.Domain.Apps.Core.Operations.ExtractReferenceIds
 
             var sut = Fields.Assets(1, "my-asset", Partitioning.Invariant);
 
-            var result = sut.CleanReferences(CreateValue(id1, id2), new HashSet<Guid>(new[] { id2 }));
+            var result = sut.CleanReferences(CreateValue(id1, id2), HashSet.Of(id2));
 
             Assert.Equal(CreateValue(id1), result);
         }
@@ -154,9 +155,30 @@ namespace Squidex.Domain.Apps.Core.Operations.ExtractReferenceIds
             var sut = Fields.Assets(1, "my-asset", Partitioning.Invariant);
 
             var token = CreateValue(id1, id2);
-            var result = sut.CleanReferences(token, new HashSet<Guid>(new[] { Guid.NewGuid() }));
+            var result = sut.CleanReferences(token, HashSet.Of(Guid.NewGuid()));
 
             Assert.Same(token, result);
+        }
+
+        [Fact]
+        public void Should_return_ids_from_nested_references_field()
+        {
+            var id1 = Guid.NewGuid();
+            var id2 = Guid.NewGuid();
+
+            var sut =
+                Fields.Array(1, "my-array", Partitioning.Invariant,
+                    Fields.References(1, "my-refs",
+                        new ReferencesFieldProperties { SchemaId = schemaId }));
+
+            var value =
+                new JArray(
+                    new JObject(
+                        new JProperty("my-refs", CreateValue(id1, id2))));
+
+            var result = sut.ExtractReferences(value).ToArray();
+
+            Assert.Equal(new[] { id1, id2, schemaId }, result);
         }
 
         [Fact]
@@ -214,7 +236,7 @@ namespace Squidex.Domain.Apps.Core.Operations.ExtractReferenceIds
             var sut = Fields.References(1, "my-refs", Partitioning.Invariant,
                 new ReferencesFieldProperties { SchemaId = schemaId });
 
-            var result = sut.CleanReferences(CreateValue(id1, id2), new HashSet<Guid>(new[] { id2 }));
+            var result = sut.CleanReferences(CreateValue(id1, id2), HashSet.Of(id2));
 
             Assert.Equal(CreateValue(id1), result);
         }
@@ -228,7 +250,7 @@ namespace Squidex.Domain.Apps.Core.Operations.ExtractReferenceIds
             var sut = Fields.References(1, "my-refs", Partitioning.Invariant,
                 new ReferencesFieldProperties { SchemaId = schemaId });
 
-            var result = sut.CleanReferences(CreateValue(id1, id2), new HashSet<Guid>(new[] { schemaId }));
+            var result = sut.CleanReferences(CreateValue(id1, id2), HashSet.Of(schemaId));
 
             Assert.Equal(CreateValue(), result);
         }
@@ -242,7 +264,7 @@ namespace Squidex.Domain.Apps.Core.Operations.ExtractReferenceIds
             var sut = Fields.References(1, "my-refs", Partitioning.Invariant);
 
             var token = CreateValue(id1, id2);
-            var result = sut.CleanReferences(token, new HashSet<Guid>(new[] { Guid.NewGuid() }));
+            var result = sut.CleanReferences(token, HashSet.Of(Guid.NewGuid()));
 
             Assert.Same(token, result);
         }
