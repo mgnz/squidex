@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using FakeItEasy;
 using Orleans;
 using Orleans.Runtime;
-using Squidex.Infrastructure.Tasks;
 using Xunit;
 
 namespace Squidex.Infrastructure.Orleans
@@ -53,9 +52,6 @@ namespace Squidex.Infrastructure.Orleans
         [Fact]
         public async Task Should_retry_after_rejection_exception()
         {
-            A.CallTo(() => grain.ActivateAsync())
-                .Returns(TaskHelper.Done);
-
             A.CallTo(() => grain.ActivateAsync())
                 .Throws(new OrleansException()).Once();
 

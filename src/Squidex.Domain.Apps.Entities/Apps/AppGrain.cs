@@ -26,10 +26,9 @@ using Squidex.Shared.Users;
 
 namespace Squidex.Domain.Apps.Entities.Apps
 {
-    public class AppGrain : SquidexDomainObjectGrain<AppState>, IAppGrain
+    public sealed class AppGrain : SquidexDomainObjectGrain<AppState>, IAppGrain
     {
         private readonly InitialPatterns initialPatterns;
-        private readonly IAppProvider appProvider;
         private readonly IAppPlansProvider appPlansProvider;
         private readonly IAppPlanBillingManager appPlansBillingManager;
         private readonly IUserResolver userResolver;
@@ -38,20 +37,17 @@ namespace Squidex.Domain.Apps.Entities.Apps
             InitialPatterns initialPatterns,
             IStore<Guid> store,
             ISemanticLog log,
-            IAppProvider appProvider,
             IAppPlansProvider appPlansProvider,
             IAppPlanBillingManager appPlansBillingManager,
             IUserResolver userResolver)
             : base(store, log)
         {
             Guard.NotNull(initialPatterns, nameof(initialPatterns));
-            Guard.NotNull(appProvider, nameof(appProvider));
             Guard.NotNull(userResolver, nameof(userResolver));
             Guard.NotNull(appPlansProvider, nameof(appPlansProvider));
             Guard.NotNull(appPlansBillingManager, nameof(appPlansBillingManager));
 
             this.userResolver = userResolver;
-            this.appProvider = appProvider;
             this.appPlansProvider = appPlansProvider;
             this.appPlansBillingManager = appPlansBillingManager;
             this.initialPatterns = initialPatterns;
@@ -64,9 +60,9 @@ namespace Squidex.Domain.Apps.Entities.Apps
             switch (command)
             {
                 case CreateApp createApp:
-                    return CreateAsync(createApp, async c =>
+                    return CreateAsync(createApp, c =>
                     {
-                        await GuardApp.CanCreate(c, appProvider);
+                        GuardApp.CanCreate(c);
 
                         Create(c);
                     });
@@ -78,7 +74,7 @@ namespace Squidex.Domain.Apps.Entities.Apps
 
                         AssignContributor(c);
 
-                        return EntityCreatedResult.Create(c.ContributorId, NewVersion);
+                        return EntityCreatedResult.Create(c.ContributorId, Version);
                     });
 
                 case RemoveContributor removeContributor:
@@ -334,9 +330,9 @@ namespace Squidex.Domain.Apps.Entities.Apps
             return new AppContributorAssigned { ContributorId = actor.Identifier, Permission = AppContributorPermission.Owner };
         }
 
-        public override void ApplyEvent(Envelope<IEvent> @event)
+        protected override AppState OnEvent(Envelope<IEvent> @event)
         {
-            ApplySnapshot(Snapshot.Apply(@event));
+            return Snapshot.Apply(@event);
         }
 
         public Task<J<IAppEntity>> GetStateAsync()

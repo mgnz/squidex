@@ -6,12 +6,9 @@
 // ==========================================================================
 
 using System.IO;
-using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Orleans;
-using Orleans.Hosting;
 using Squidex.Config;
 using Squidex.Infrastructure.Log.Adapter;
 

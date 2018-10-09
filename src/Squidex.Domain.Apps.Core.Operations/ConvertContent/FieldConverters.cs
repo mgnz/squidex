@@ -26,17 +26,16 @@ namespace Squidex.Domain.Apps.Core.ConvertContent
     {
         private static readonly Func<IField, string> KeyNameResolver = f => f.Name;
         private static readonly Func<IField, string> KeyIdResolver = f => f.Id.ToString();
+
         private static readonly Func<IArrayField, string, IField> FieldByIdResolver =
             (f, k) => long.TryParse(k, out var id) ? f.FieldsById.GetOrDefault(id) : null;
+
         private static readonly Func<IArrayField, string, IField> FieldByNameResolver =
             (f, k) => f.FieldsByName.GetOrDefault(k);
 
         public static FieldConverter ExcludeHidden()
         {
-            return (data, field) =>
-            {
-                return field.IsHidden ? null : data;
-            };
+            return (data, field) => field.IsHidden ? null : data;
         }
 
         public static FieldConverter ExcludeChangedTypes()
@@ -98,7 +97,6 @@ namespace Squidex.Domain.Apps.Core.ConvertContent
         public static FieldConverter ResolveLanguages(LanguagesConfig config)
         {
             var codeForInvariant = InvariantPartitioning.Instance.Master.Key;
-            var codeForMasterLanguage = config.Master.Language.Iso2Code;
 
             return (data, field) =>
             {
@@ -251,7 +249,7 @@ namespace Squidex.Domain.Apps.Core.ConvertContent
 
                         var newArray = new JArray();
 
-                        foreach (JObject item in jArray.OfType<JObject>())
+                        foreach (var item in jArray.OfType<JObject>())
                         {
                             var newItem = new JObject();
 

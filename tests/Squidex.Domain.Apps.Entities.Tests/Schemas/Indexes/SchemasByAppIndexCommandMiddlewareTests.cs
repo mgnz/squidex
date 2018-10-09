@@ -17,13 +17,12 @@ using Xunit;
 
 namespace Squidex.Domain.Apps.Entities.Schemas.Indexes
 {
-    public sealed class SchemasByAppIndexCommandMiddlewareTests
+    public class SchemasByAppIndexCommandMiddlewareTests
     {
         private readonly IGrainFactory grainFactory = A.Fake<IGrainFactory>();
         private readonly ICommandBus commandBus = A.Fake<ICommandBus>();
         private readonly ISchemasByAppIndex index = A.Fake<ISchemasByAppIndex>();
         private readonly Guid appId = Guid.NewGuid();
-        private readonly Guid schemaId = Guid.NewGuid();
         private readonly SchemasByAppIndexCommandMiddleware sut;
 
         public SchemasByAppIndexCommandMiddlewareTests()
@@ -38,7 +37,7 @@ namespace Squidex.Domain.Apps.Entities.Schemas.Indexes
         public async Task Should_add_schema_to_index_on_create()
         {
             var context =
-                new CommandContext(new CreateSchema { SchemaId = appId, Name = "my-schema", AppId = NamedId.Of(appId, "my-app") }, commandBus)
+                new CommandContext(new CreateSchema { SchemaId = appId, Name = "my-schema", AppId = BuildAppId() }, commandBus)
                     .Complete();
 
             await sut.HandleAsync(context);
@@ -60,7 +59,7 @@ namespace Squidex.Domain.Apps.Entities.Schemas.Indexes
                 .Returns(J.AsTask(schemaState));
 
             A.CallTo(() => schemaState.AppId)
-                .Returns(NamedId.Of(appId, "my-app"));
+                .Returns(BuildAppId());
 
             var context =
                 new CommandContext(new DeleteSchema { SchemaId = appId }, commandBus)
@@ -70,6 +69,11 @@ namespace Squidex.Domain.Apps.Entities.Schemas.Indexes
 
             A.CallTo(() => index.RemoveSchemaAsync(appId))
                 .MustHaveHappened();
+        }
+
+        private NamedId<Guid> BuildAppId()
+        {
+            return NamedId.Of(appId, "my-app");
         }
     }
 }

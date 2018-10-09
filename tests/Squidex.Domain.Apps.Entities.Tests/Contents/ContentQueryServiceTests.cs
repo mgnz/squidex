@@ -12,7 +12,6 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using FakeItEasy;
 using Microsoft.OData;
-using Microsoft.OData.UriParser;
 using Squidex.Domain.Apps.Core.Apps;
 using Squidex.Domain.Apps.Core.Contents;
 using Squidex.Domain.Apps.Core.Schemas;
@@ -22,6 +21,7 @@ using Squidex.Domain.Apps.Entities.Contents.Edm;
 using Squidex.Domain.Apps.Entities.Contents.Repositories;
 using Squidex.Domain.Apps.Entities.Schemas;
 using Squidex.Infrastructure;
+using Squidex.Infrastructure.Queries;
 using Squidex.Infrastructure.Security;
 using Xunit;
 
@@ -45,7 +45,7 @@ namespace Squidex.Domain.Apps.Entities.Contents
         private readonly ClaimsPrincipal user;
         private readonly ClaimsIdentity identity = new ClaimsIdentity();
         private readonly EdmModelBuilder modelBuilder = A.Fake<EdmModelBuilder>();
-        private readonly QueryContext context;
+        private readonly ContentQueryContext context;
         private readonly ContentQueryService sut;
 
         public ContentQueryServiceTests()
@@ -58,9 +58,9 @@ namespace Squidex.Domain.Apps.Entities.Contents
 
             A.CallTo(() => schema.SchemaDef).Returns(new Schema("my-schema"));
 
-            context = QueryContext.Create(app, user);
+            context = new ContentQueryContext(QueryContext.Create(app, user));
 
-            sut = new ContentQueryService(contentRepository, contentVersionLoader, appProvider, scriptEngine, modelBuilder);
+            sut = new ContentQueryService(appProvider, contentRepository, contentVersionLoader, scriptEngine, modelBuilder);
         }
 
         [Fact]
@@ -105,13 +105,15 @@ namespace Squidex.Domain.Apps.Entities.Contents
 
         public static IEnumerable<object[]> SingleRequestData = new[]
         {
-            new object[] { true,  new[] { Status.Archived, Status.Draft, Status.Published } },
-            new object[] { false, new[] { Status.Published } }
+            new object[] { true,  true,  new[] { Status.Archived, Status.Draft, Status.Published } },
+            new object[] { true,  false, new[] { Status.Archived, Status.Draft, Status.Published } },
+            new object[] { false, true,  new[] { Status.Draft, Status.Published } },
+            new object[] { false, false, new[] { Status.Published } }
         };
 
         [Theory]
         [MemberData(nameof(SingleRequestData))]
-        public async Task Should_return_content_from_repository_and_transform(bool isFrontend, params Status[] status)
+        public async Task Should_return_content_from_repository_and_transform(bool isFrontend, bool unpublished, params Status[] status)
         {
             var contentId = Guid.NewGuid();
             var content = CreateContent(contentId);
@@ -124,7 +126,9 @@ namespace Squidex.Domain.Apps.Entities.Contents
             A.CallTo(() => contentRepository.FindContentAsync(app, schema, A<Status[]>.That.IsSameSequenceAs(status), contentId))
                 .Returns(content);
 
-            var result = await sut.FindContentAsync(context.WithSchemaId(schemaId), contentId);
+            var ctx = context.WithSchemaId(schemaId).WithUnpublished(unpublished);
+
+            var result = await sut.FindContentAsync(ctx, contentId);
 
             Assert.Equal(contentTransformed, result.Data);
             Assert.Equal(content.Id, result.Id);
@@ -165,16 +169,22 @@ namespace Squidex.Domain.Apps.Entities.Contents
 
         public static IEnumerable<object[]> ManyRequestData = new[]
         {
-            new object[] { 5, 200, false, true,  new[] { Status.Published } },
-            new object[] { 5, 200, false, false, new[] { Status.Published } },
-            new object[] { 5, 200, true,  false, new[] { Status.Draft, Status.Published } },
-            new object[] { 5, 200, true,  true,  new[] { Status.Archived } }
+            new object[] { true,  true,  true,  new[] { Status.Archived } },
+            new object[] { true,  true,  false, new[] { Status.Archived } },
+            new object[] { true,  false, true,  new[] { Status.Draft, Status.Published } },
+            new object[] { true,  false, false, new[] { Status.Draft, Status.Published } },
+            new object[] { false, true,  true,  new[] { Status.Draft, Status.Published } },
+            new object[] { false, false, true,  new[] { Status.Draft, Status.Published } },
+            new object[] { false, false, false, new[] { Status.Published } },
+            new object[] { false, true,  false, new[] { Status.Published } }
         };
 
         [Theory]
         [MemberData(nameof(ManyRequestData))]
-        public async Task Should_query_contents_by_query_from_repository_and_transform(int count, int total, bool isFrontend, bool archive, params Status[] status)
+        public async Task Should_query_contents_by_query_from_repository_and_transform(bool isFrontend, bool archive, bool unpublished, params Status[] status)
         {
+            const int count = 5, total = 200;
+
             var contentId = Guid.NewGuid();
             var content = CreateContent(contentId);
 
@@ -184,10 +194,12 @@ namespace Squidex.Domain.Apps.Entities.Contents
             A.CallTo(() => appProvider.GetSchemaAsync(appId, schemaId, false))
                 .Returns(schema);
 
-            A.CallTo(() => contentRepository.QueryAsync(app, schema, A<Status[]>.That.IsSameSequenceAs(status), A<ODataUriParser>.Ignored))
-                .Returns(ResultList.Create(Enumerable.Repeat(content, count), total));
+            A.CallTo(() => contentRepository.QueryAsync(app, schema, A<Status[]>.That.IsSameSequenceAs(status), A<Query>.Ignored))
+                .Returns(ResultList.Create(total, Enumerable.Repeat(content, count)));
 
-            var result = await sut.QueryAsync(context.WithSchemaId(schemaId).WithArchived(archive), string.Empty);
+            var ctx = context.WithSchemaId(schemaId).WithArchived(archive).WithUnpublished(unpublished);
+
+            var result = await sut.QueryAsync(ctx, Q.Empty);
 
             Assert.Equal(contentData, result[0].Data);
             Assert.Equal(content.Id, result[0].Id);
@@ -215,21 +227,27 @@ namespace Squidex.Domain.Apps.Entities.Contents
             A.CallTo(() => modelBuilder.BuildEdmModel(schema, app))
                 .Throws(new ODataException());
 
-            return Assert.ThrowsAsync<ValidationException>(() => sut.QueryAsync(context.WithSchemaId(schemaId), "query"));
+            return Assert.ThrowsAsync<ValidationException>(() => sut.QueryAsync(context.WithSchemaId(schemaId), Q.Empty.WithODataQuery("query")));
         }
 
         public static IEnumerable<object[]> ManyIdRequestData = new[]
         {
-            new object[] { 5, 200, false, true,  new[] { Status.Published } },
-            new object[] { 5, 200, false, false, new[] { Status.Published } },
-            new object[] { 5, 200, true,  false, new[] { Status.Draft, Status.Published } },
-            new object[] { 5, 200, true,  true,  new[] { Status.Archived } }
+            new object[] { true,  true,  true,  new[] { Status.Archived } },
+            new object[] { true,  true,  false, new[] { Status.Archived } },
+            new object[] { true,  false, true,  new[] { Status.Draft, Status.Published } },
+            new object[] { true,  false, false, new[] { Status.Draft, Status.Published } },
+            new object[] { false, true,  true,  new[] { Status.Draft, Status.Published } },
+            new object[] { false, false, true,  new[] { Status.Draft, Status.Published } },
+            new object[] { false, false, false, new[] { Status.Published } },
+            new object[] { false, true,  false, new[] { Status.Published } }
         };
 
         [Theory]
         [MemberData(nameof(ManyIdRequestData))]
-        public async Task Should_query_contents_by_id_from_repository_and_transform(int count, int total, bool isFrontend, bool archive, params Status[] status)
+        public async Task Should_query_contents_by_id_from_repository_and_transform(bool isFrontend, bool archive, bool unpublished, params Status[] status)
         {
+            const int count = 5, total = 200;
+
             var ids = Enumerable.Range(0, count).Select(x => Guid.NewGuid()).ToList();
 
             SetupClaims(isFrontend);
@@ -239,9 +257,11 @@ namespace Squidex.Domain.Apps.Entities.Contents
                 .Returns(schema);
 
             A.CallTo(() => contentRepository.QueryAsync(app, schema, A<Status[]>.That.IsSameSequenceAs(status), A<HashSet<Guid>>.Ignored))
-                .Returns(ResultList.Create(ids.Select(x => CreateContent(x)).Shuffle(), total));
+                .Returns(ResultList.Create(total, ids.Select(x => CreateContent(x)).Shuffle()));
 
-            var result = await sut.QueryAsync(context.WithSchemaId(schemaId).WithArchived(archive), ids);
+            var ctx = context.WithSchemaId(schemaId).WithArchived(archive).WithUnpublished(unpublished);
+
+            var result = await sut.QueryAsync(ctx, Q.Empty.WithIds(ids));
 
             Assert.Equal(ids, result.Select(x => x.Id).ToList());
             Assert.Equal(total, result.Total);

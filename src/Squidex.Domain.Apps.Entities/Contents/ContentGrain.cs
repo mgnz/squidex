@@ -20,12 +20,13 @@ using Squidex.Infrastructure;
 using Squidex.Infrastructure.Commands;
 using Squidex.Infrastructure.EventSourcing;
 using Squidex.Infrastructure.Log;
+using Squidex.Infrastructure.Orleans;
 using Squidex.Infrastructure.Reflection;
 using Squidex.Infrastructure.States;
 
 namespace Squidex.Domain.Apps.Entities.Contents
 {
-    public class ContentGrain : SquidexDomainObjectGrain<ContentState>, IContentGrain
+    public sealed class ContentGrain : SquidexDomainObjectGrainLogSnapshots<ContentState>, IContentGrain
     {
         private readonly IAppProvider appProvider;
         private readonly IAssetRepository assetRepository;
@@ -65,18 +66,18 @@ namespace Squidex.Domain.Apps.Entities.Contents
 
                         GuardContent.CanCreate(ctx.Schema, c);
 
-                        await ctx.ExecuteScriptAndTransformAsync(x => x.ScriptCreate, "Create", c, c.Data, null);
+                        await ctx.ExecuteScriptAndTransformAsync(x => x.ScriptCreate, "Create", c, c.Data);
                         await ctx.EnrichAsync(c.Data);
                         await ctx.ValidateAsync(c.Data);
 
                         if (c.Publish)
                         {
-                            await ctx.ExecuteScriptAsync(x => x.ScriptChange, "Published", c, c.Data, null);
+                            await ctx.ExecuteScriptAsync(x => x.ScriptChange, "Published", c, c.Data);
                         }
 
                         Create(c);
 
-                        return EntityCreatedResult.Create(c.Data, NewVersion);
+                        return EntityCreatedResult.Create(c.Data, Version);
                     });
 
                 case UpdateContent updateContent:
@@ -116,9 +117,28 @@ namespace Squidex.Domain.Apps.Entities.Contents
                                 }
                                 else
                                 {
-                                    await ctx.ExecuteScriptAsync(x => x.ScriptChange, c.Status, c, Snapshot.Data);
+                                    StatusChange reason;
 
-                                    ChangeStatus(c);
+                                    if (c.Status == Status.Published)
+                                    {
+                                        reason = StatusChange.Published;
+                                    }
+                                    else if (c.Status == Status.Archived)
+                                    {
+                                        reason = StatusChange.Archived;
+                                    }
+                                    else if (Snapshot.Status == Status.Published)
+                                    {
+                                        reason = StatusChange.Unpublished;
+                                    }
+                                    else
+                                    {
+                                        reason = StatusChange.Restored;
+                                    }
+
+                                    await ctx.ExecuteScriptAsync(x => x.ScriptChange, reason, c, Snapshot.Data);
+
+                                    ChangeStatus(c, reason);
                                 }
                             }
                         }
@@ -196,7 +216,7 @@ namespace Squidex.Domain.Apps.Entities.Contents
                 }
             }
 
-            return new ContentDataChangedResult(newData, NewVersion);
+            return new ContentDataChangedResult(newData, Version);
         }
 
         public void Create(CreateContent command)
@@ -205,7 +225,7 @@ namespace Squidex.Domain.Apps.Entities.Contents
 
             if (command.Publish)
             {
-                RaiseEvent(SimpleMapper.Map(command, new ContentStatusChanged { Status = Status.Published }));
+                RaiseEvent(SimpleMapper.Map(command, new ContentStatusChanged { Status = Status.Published, Change = StatusChange.Published }));
             }
         }
 
@@ -244,9 +264,9 @@ namespace Squidex.Domain.Apps.Entities.Contents
             RaiseEvent(SimpleMapper.Map(command, new ContentStatusScheduled { DueTime = command.DueTime.Value }));
         }
 
-        public void ChangeStatus(ChangeContentStatus command)
+        public void ChangeStatus(ChangeContentStatus command, StatusChange reason)
         {
-            RaiseEvent(SimpleMapper.Map(command, new ContentStatusChanged()));
+            RaiseEvent(SimpleMapper.Map(command, new ContentStatusChanged { Change = reason }));
         }
 
         private void RaiseEvent(SchemaEvent @event)
@@ -272,22 +292,24 @@ namespace Squidex.Domain.Apps.Entities.Contents
             }
         }
 
-        public override void ApplyEvent(Envelope<IEvent> @event)
+        protected override ContentState OnEvent(Envelope<IEvent> @event)
         {
-            ApplySnapshot(Snapshot.Apply(@event));
+            return Snapshot.Apply(@event);
         }
 
         private async Task<ContentOperationContext> CreateContext(Guid appId, Guid schemaId, Func<string> message)
         {
             var operationContext =
-                await ContentOperationContext.CreateAsync(appId, schemaId,
-                    appProvider,
-                    assetRepository,
-                    contentRepository,
-                    scriptEngine,
-                    message);
+                await ContentOperationContext.CreateAsync(
+                    appId, schemaId,
+                    appProvider, assetRepository, contentRepository, scriptEngine, message);
 
             return operationContext;
+        }
+
+        public Task<J<IContentEntity>> GetStateAsync(long version = EtagVersion.Any)
+        {
+            return J.AsTask<IContentEntity>(GetSnapshot(version));
         }
     }
 }

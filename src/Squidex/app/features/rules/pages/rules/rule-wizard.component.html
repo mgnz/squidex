@@ -1,4 +1,4 @@
-<sqx-modal-dialog large="true" fullHeight="true" (closed)="complete()">
+<sqx-modal-dialog large="true" fullHeight="true" (closed)="complete()" [showFooter]="step === 2 || step === 4">
     <ng-container title>
         <ng-container *ngIf="mode === 'EditTrigger'">
             Edit Trigger
@@ -21,19 +21,18 @@
     </ng-container>
 
     <ng-container content>
-        <ng-container *ngIf="step === 1">        
-            <span *ngFor="let trigger of ruleTriggers | sqxKeys" class="rule-element rule-element-{{trigger}}" (click)="selectTriggerType(trigger)">
-                <span class="rule-element-icon">
-                    <i class="icon-trigger-{{trigger}}"></i>
-                </span>
-                <span class="rule-element-text">
-                    {{ruleTriggers[trigger].name}}
-                </span>
-            </span>
-        </ng-container>
+        <div class="row no-gutters" *ngIf="step === 1">
+            <div *ngFor="let triggerType of ruleTriggers | sqxKeys" class="col-12 col-md-6">
+                <div class="rule-element" (click)="selectTriggerType(triggerType)">
+                    <sqx-rule-element [type]="triggerType" [isSmall]="false" [element]="ruleTriggers[triggerType]"></sqx-rule-element>
+                </div>
+            </div>
+        </div>
         
         <ng-container *ngIf="step === 2 && schemas">
             <form [formGroup]="triggerForm.form" (submit)="saveTrigger()">  
+                <h3 class="wizard-title">{{ruleTriggers[triggerType].display}}</h3>
+
                 <ng-container [ngSwitch]="triggerType">
                     <ng-container *ngSwitchCase="'AssetChanged'">
                         <sqx-asset-changed-trigger
@@ -54,19 +53,18 @@
             </form>
         </ng-container>
     
-        <ng-container *ngIf="step === 3">        
-            <span *ngFor="let action of ruleActions | sqxKeys" class="rule-element rule-element-{{action}}" (click)="selectActionType(action)">
-                <span class="rule-element-icon">
-                    <i class="icon-action-{{action}}"></i>
-                </span>
-                <span class="rule-element-text">
-                    {{ruleActions[action].name}}
-                </span>
-            </span>
-        </ng-container>
+        <div class="row no-gutters" *ngIf="step === 3">
+            <div *ngFor="let actionType of ruleActions | sqxKeys" class="col-12 col-md-6">
+                <div class="rule-element" (click)="selectActionType(actionType)">
+                    <sqx-rule-element [type]="actionType" [isSmall]="false" [element]="ruleActions[actionType]"></sqx-rule-element>
+                </div>
+            </div>
+        </div>
     
         <ng-container *ngIf="step === 4">
             <form [formGroup]="actionForm.form" (submit)="saveAction()">
+                    <h3 class="wizard-title">{{ruleActions[actionType].display}}</h3>
+
                 <ng-container [ngSwitch]="actionType">
                     <ng-container *ngSwitchCase="'Algolia'">
                         <sqx-algolia-action
@@ -82,6 +80,13 @@
                             [actionFormSubmitted]="actionForm.submitted | async">
                         </sqx-azure-queue-action>
                     </ng-container>
+                    <ng-container *ngSwitchCase="'Discourse'">
+                        <sqx-discourse-action
+                            [action]="action"
+                            [actionForm]="actionForm.form"
+                            [actionFormSubmitted]="actionForm.submitted | async">
+                        </sqx-discourse-action>
+                    </ng-container>
                     <ng-container *ngSwitchCase="'ElasticSearch'">
                         <sqx-elastic-search-action
                             [action]="action"
@@ -96,12 +101,33 @@
                             [actionFormSubmitted]="actionForm.submitted | async">
                         </sqx-fastly-action>
                     </ng-container>
+                    <ng-container *ngSwitchCase="'Medium'">
+                        <sqx-medium-action
+                            [action]="action"
+                            [actionForm]="actionForm.form"
+                            [actionFormSubmitted]="actionForm.submitted | async">
+                        </sqx-medium-action>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="'Prerender'">
+                        <sqx-prerender-action
+                            [action]="action"
+                            [actionForm]="actionForm.form"
+                            [actionFormSubmitted]="actionForm.submitted | async">
+                        </sqx-prerender-action>
+                    </ng-container>
                     <ng-container *ngSwitchCase="'Slack'">
                         <sqx-slack-action
                             [action]="action"
                             [actionForm]="actionForm.form"
                             [actionFormSubmitted]="actionForm.submitted | async">
                         </sqx-slack-action>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="'Tweet'">
+                        <sqx-tweet-action
+                            [action]="action"
+                            [actionForm]="actionForm.form"
+                            [actionFormSubmitted]="actionForm.submitted | async">
+                        </sqx-tweet-action>
                     </ng-container>
                     <ng-container *ngSwitchCase="'Webhook'">
                         <sqx-webhook-action        

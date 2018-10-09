@@ -59,7 +59,7 @@ namespace Squidex.Domain.Apps.Core.Operations.ValidateContent
             errors.Should().BeEquivalentTo(
                 new List<ValidationError>
                 {
-                    new ValidationError("my-field: Must be less or equals than '100'.", "my-field")
+                    new ValidationError("my-field: Must be less than or equal to '100'.", "my-field")
                 });
         }
 
@@ -221,7 +221,7 @@ namespace Squidex.Domain.Apps.Core.Operations.ValidateContent
             errors.Should().BeEquivalentTo(
                 new List<ValidationError>
                 {
-                    new ValidationError("my-field: Must be less or equals than '100'.", "my-field")
+                    new ValidationError("my-field: Must be less than or equal to '100'.", "my-field")
                 });
         }
 
@@ -340,7 +340,7 @@ namespace Squidex.Domain.Apps.Core.Operations.ValidateContent
                 new List<ValidationError>
                 {
                     new ValidationError("my-field[1].my-nested: Field is required.", "my-field[1].my-nested"),
-                    new ValidationError("my-field[3].my-nested: Field is required.", "my-field[3].my-nested"),
+                    new ValidationError("my-field[3].my-nested: Field is required.", "my-field[3].my-nested")
                 });
         }
     }

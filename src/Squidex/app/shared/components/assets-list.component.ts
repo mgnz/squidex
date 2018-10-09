@@ -28,7 +28,10 @@ export class AssetsListComponent {
     public state: AssetsState;
 
     @Input()
-    public isDisabled: false;
+    public isDisabled = false;
+
+    @Input()
+    public isListView = false;
 
     @Input()
     public selectedIds: object;
@@ -56,6 +59,10 @@ export class AssetsListComponent {
 
     public goPrev() {
         this.state.goPrev().pipe(onErrorResumeNext()).subscribe();
+    }
+
+    public update(asset: AssetDto) {
+        this.state.update(asset);
     }
 
     public trackByAsset(index: number, asset: AssetDto) {

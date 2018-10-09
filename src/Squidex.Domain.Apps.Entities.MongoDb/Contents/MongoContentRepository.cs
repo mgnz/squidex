@@ -7,8 +7,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.OData.UriParser;
 using MongoDB.Driver;
 using NodaTime;
 using Squidex.Domain.Apps.Core.Contents;
@@ -18,6 +18,7 @@ using Squidex.Domain.Apps.Entities.Contents.Repositories;
 using Squidex.Domain.Apps.Entities.Schemas;
 using Squidex.Infrastructure;
 using Squidex.Infrastructure.Log;
+using Squidex.Infrastructure.Queries;
 
 namespace Squidex.Domain.Apps.Entities.MongoDb.Contents
 {
@@ -40,23 +41,22 @@ namespace Squidex.Domain.Apps.Entities.MongoDb.Contents
             this.database = database;
         }
 
-        public void Initialize()
+        public Task InitializeAsync(CancellationToken ct = default(CancellationToken))
         {
-            contentsDraft.Initialize();
-            contentsPublished.Initialize();
+            return Task.WhenAll(contentsDraft.InitializeAsync(ct), contentsPublished.InitializeAsync(ct));
         }
 
-        public async Task<IResultList<IContentEntity>> QueryAsync(IAppEntity app, ISchemaEntity schema, Status[] status, ODataUriParser odataQuery)
+        public async Task<IResultList<IContentEntity>> QueryAsync(IAppEntity app, ISchemaEntity schema, Status[] status, Query query)
         {
             using (Profiler.TraceMethod<MongoContentRepository>("QueryAsyncByQuery"))
             {
                 if (RequiresPublished(status))
                 {
-                    return await contentsPublished.QueryAsync(app, schema, odataQuery);
+                    return await contentsPublished.QueryAsync(app, schema, query);
                 }
                 else
                 {
-                    return await contentsDraft.QueryAsync(app, schema, odataQuery, status, true);
+                    return await contentsDraft.QueryAsync(app, schema, query, status, true);
                 }
             }
         }
@@ -99,12 +99,27 @@ namespace Squidex.Domain.Apps.Entities.MongoDb.Contents
             }
         }
 
+        public async Task<IReadOnlyList<Guid>> QueryIdsAsync(Guid appId)
+        {
+            using (Profiler.TraceMethod<MongoContentRepository>())
+            {
+                return await contentsDraft.QueryIdsAsync(appId);
+            }
+        }
+
         public async Task QueryScheduledWithoutDataAsync(Instant now, Func<IContentEntity, Task> callback)
         {
             using (Profiler.TraceMethod<MongoContentRepository>())
             {
                 await contentsDraft.QueryScheduledWithoutDataAsync(now, callback);
             }
+        }
+
+        public Task RemoveAsync(Guid appId)
+        {
+            return Task.WhenAll(
+                contentsDraft.RemoveAsync(appId),
+                contentsPublished.RemoveAsync(appId));
         }
 
         public Task ClearAsync()

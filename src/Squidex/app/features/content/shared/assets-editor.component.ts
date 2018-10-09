@@ -14,8 +14,9 @@ import {
     AppsState,
     AssetDto,
     AssetsService,
+    DialogModel,
     ImmutableArray,
-    ModalView,
+    LocalStoreService,
     Types
 } from '@app/shared';
 
@@ -35,17 +36,20 @@ export class AssetsEditorComponent implements ControlValueAccessor {
     private callChange = (v: any) => { /* NOOP */ };
     private callTouched = () => { /* NOOP */ };
 
-    public selectorModal = new ModalView();
+    public assetsDialog = new DialogModel();
 
     public newAssets = ImmutableArray.empty<File>();
     public oldAssets = ImmutableArray.empty<AssetDto>();
 
+    public isListView = false;
     public isDisabled = false;
 
     constructor(
         private readonly appsState: AppsState,
-        private readonly assetsService: AssetsService
+        private readonly assetsService: AssetsService,
+        private readonly localStore: LocalStoreService
     ) {
+        this.isListView = this.localStore.get('assetView') === 'List';
     }
 
     public writeValue(obj: any) {
@@ -53,7 +57,7 @@ export class AssetsEditorComponent implements ControlValueAccessor {
             if (!Types.isEquals(obj, this.oldAssets.map(x => x.id).values)) {
                 const assetIds: string[] = obj;
 
-                this.assetsService.getAssets(this.appsState.appName, 0, 0, undefined, obj)
+                this.assetsService.getAssets(this.appsState.appName, 0, 0, undefined, undefined, obj)
                     .subscribe(dtos => {
                         this.oldAssets = ImmutableArray.of(assetIds.map(id => dtos.items.find(x => x.id === id)).filter(a => !!a).map(a => a!));
 
@@ -96,7 +100,7 @@ export class AssetsEditorComponent implements ControlValueAccessor {
             this.updateValue();
         }
 
-        this.selectorModal.hide();
+        this.assetsDialog.hide();
     }
 
     public onAssetRemoving(asset: AssetDto) {
@@ -127,5 +131,19 @@ export class AssetsEditorComponent implements ControlValueAccessor {
 
         this.callTouched();
         this.callChange(ids);
+    }
+
+    public sort(assets: AssetDto[]) {
+        if (assets) {
+            this.oldAssets = ImmutableArray.of(assets);
+
+            this.updateValue();
+        }
+    }
+
+    public changeView(isListView: boolean) {
+        this.localStore.set('assetView', isListView ? 'List' : 'Grid');
+
+        this.isListView = isListView;
     }
 }

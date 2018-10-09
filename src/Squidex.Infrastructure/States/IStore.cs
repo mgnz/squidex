@@ -11,7 +11,7 @@ using Squidex.Infrastructure.EventSourcing;
 
 namespace Squidex.Infrastructure.States
 {
-    public interface IStore<TKey>
+    public interface IStore<in TKey>
     {
         IPersistence WithEventSourcing(Type owner, TKey key, Func<Envelope<IEvent>, Task> applyEvent);
 
@@ -19,6 +19,6 @@ namespace Squidex.Infrastructure.States
 
         IPersistence<TState> WithSnapshotsAndEventSourcing<TState>(Type owner, TKey key, Func<TState, Task> applySnapshot, Func<Envelope<IEvent>, Task> applyEvent);
 
-        Task ClearSnapshotsAsync<TState>();
+        ISnapshotStore<TState, TKey> GetSnapshotStore<TState>();
     }
 }

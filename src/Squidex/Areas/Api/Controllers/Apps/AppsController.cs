@@ -62,6 +62,8 @@ namespace Squidex.Areas.Api.Controllers.Apps
 
             var response = entities.Select(a => AppDto.FromApp(a, subject, appPlansProvider)).ToList();
 
+            Response.Headers["ETag"] = response.ToManyEtag();
+
             return Ok(response);
         }
 

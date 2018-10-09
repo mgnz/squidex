@@ -6,7 +6,6 @@
 // ==========================================================================
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +15,7 @@ using NodaTime.Text;
 using NSwag.Annotations;
 using Squidex.Areas.Api.Controllers.Contents.Models;
 using Squidex.Domain.Apps.Core.Contents;
+using Squidex.Domain.Apps.Entities;
 using Squidex.Domain.Apps.Entities.Contents;
 using Squidex.Domain.Apps.Entities.Contents.Commands;
 using Squidex.Domain.Apps.Entities.Contents.GraphQL;
@@ -30,14 +30,14 @@ namespace Squidex.Areas.Api.Controllers.Contents
     [SwaggerIgnore]
     public sealed class ContentsController : ApiController
     {
-        private readonly IOptions<ContentsControllerOptions> controllerOptions;
+        private readonly IOptions<MyContentsControllerOptions> controllerOptions;
         private readonly IContentQueryService contentQuery;
         private readonly IGraphQLService graphQl;
 
         public ContentsController(ICommandBus commandBus,
             IContentQueryService contentQuery,
             IGraphQLService graphQl,
-            IOptions<ContentsControllerOptions> controllerOptions)
+            IOptions<MyContentsControllerOptions> controllerOptions)
             : base(commandBus)
         {
             this.contentQuery = contentQuery;
@@ -50,7 +50,7 @@ namespace Squidex.Areas.Api.Controllers.Contents
         /// GraphQL endpoint.
         /// </summary>
         /// <param name="app">The name of the app.</param>
-        /// <param name="query">The graphql endpoint.</param>
+        /// <param name="query">The graphql query.</param>
         /// <returns>
         /// 200 => Contents retrieved or mutated.
         /// 404 => Schema or app not found.
@@ -65,15 +65,46 @@ namespace Squidex.Areas.Api.Controllers.Contents
         [ApiCosts(2)]
         public async Task<IActionResult> PostGraphQL(string app, [FromBody] GraphQLQuery query)
         {
-            var result = await graphQl.QueryAsync(Context(), query);
+            var result = await graphQl.QueryAsync(Context().Base, query);
 
-            if (result.Errors?.Length > 0)
+            if (result.HasError)
             {
-                return BadRequest(new { result.Data, result.Errors });
+                return BadRequest(result.Response);
             }
             else
             {
-                return Ok(new { result.Data });
+                return Ok(result.Response);
+            }
+        }
+
+        /// <summary>
+        /// GraphQL endpoint with batch support.
+        /// </summary>
+        /// <param name="app">The name of the app.</param>
+        /// <param name="batch">The graphql queries.</param>
+        /// <returns>
+        /// 200 => Contents retrieved or mutated.
+        /// 404 => Schema or app not found.
+        /// </returns>
+        /// <remarks>
+        /// You can read the generated documentation for your app at /api/content/{appName}/docs
+        /// </remarks>
+        [MustBeAppReader]
+        [HttpGet]
+        [HttpPost]
+        [Route("content/{app}/graphql/batch")]
+        [ApiCosts(2)]
+        public async Task<IActionResult> PostGraphQLBatch(string app, [FromBody] GraphQLQuery[] batch)
+        {
+            var result = await graphQl.QueryAsync(Context().Base, batch);
+
+            if (result.HasError)
+            {
+                return BadRequest(result.Response);
+            }
+            else
+            {
+                return Ok(result.Response);
             }
         }
 
@@ -97,40 +128,22 @@ namespace Squidex.Areas.Api.Controllers.Contents
         [ApiCosts(2)]
         public async Task<IActionResult> GetContents(string app, string name, [FromQuery] bool archived = false, [FromQuery] string ids = null)
         {
-            List<Guid> idsList = null;
+            var context = Context().WithArchived(archived).WithSchemaName(name);
 
-            if (!string.IsNullOrWhiteSpace(ids))
-            {
-                idsList = new List<Guid>();
-
-                foreach (var id in ids.Split(','))
-                {
-                    if (Guid.TryParse(id, out var guid))
-                    {
-                        idsList.Add(guid);
-                    }
-                }
-            }
-
-            var context = Context().WithSchemaName(name).WithArchived(archived);
-
-            var result =
-                idsList?.Count > 0 ?
-                    await contentQuery.QueryAsync(context, idsList) :
-                    await contentQuery.QueryAsync(context, Request.QueryString.ToString());
+            var result = await contentQuery.QueryAsync(context, Q.Empty.WithIds(ids).WithODataQuery(Request.QueryString.ToString()));
 
             var response = new ContentsDto
             {
                 Total = result.Total,
-                Items = result.Take(200).Select(x => ContentDto.FromContent(x, context)).ToArray()
+                Items = result.Take(200).Select(x => ContentDto.FromContent(x, context.Base)).ToArray()
             };
 
-            var options = controllerOptions.Value;
-
-            if (options.EnableSurrogateKeys && response.Items.Length <= options.MaxItemsForSurrogateKeys)
+            if (controllerOptions.Value.EnableSurrogateKeys && response.Items.Length <= controllerOptions.Value.MaxItemsForSurrogateKeys)
             {
-                Response.Headers["Surrogate-Key"] = string.Join(" ", response.Items.Select(x => x.Id));
+                Response.Headers["Surrogate-Key"] = response.Items.ToSurrogateKeys();
             }
+
+            Response.Headers["ETag"] = response.Items.ToManyEtag(response.Total);
 
             return Ok(response);
         }
@@ -157,14 +170,14 @@ namespace Squidex.Areas.Api.Controllers.Contents
             var context = Context().WithSchemaName(name);
             var content = await contentQuery.FindContentAsync(context, id);
 
-            var response = ContentDto.FromContent(content, context);
-
-            Response.Headers["ETag"] = content.Version.ToString();
+            var response = ContentDto.FromContent(content, context.Base);
 
             if (controllerOptions.Value.EnableSurrogateKeys)
             {
                 Response.Headers["Surrogate-Key"] = content.Id.ToString();
             }
+
+            Response.Headers["ETag"] = content.Version.ToString();
 
             return Ok(response);
         }
@@ -193,14 +206,14 @@ namespace Squidex.Areas.Api.Controllers.Contents
             var context = Context().WithSchemaName(name);
             var content = await contentQuery.FindContentAsync(context, id, version);
 
-            var response = ContentDto.FromContent(content, context);
-
-            Response.Headers["ETag"] = content.Version.ToString();
+            var response = ContentDto.FromContent(content, context.Base);
 
             if (controllerOptions.Value.EnableSurrogateKeys)
             {
                 Response.Headers["Surrogate-Key"] = content.Id.ToString();
             }
+
+            Response.Headers["ETag"] = content.Version.ToString();
 
             return Ok(response.Data);
         }
@@ -498,9 +511,12 @@ namespace Squidex.Areas.Api.Controllers.Contents
             return new ChangeContentStatus { Status = status, ContentId = id, DueTime = dt };
         }
 
-        private QueryContext Context()
+        private ContentQueryContext Context()
         {
-            return QueryContext.Create(App, User, Request.Headers["X-Languages"]).WithFlatten(Request.Headers.ContainsKey("X-Flatten"));
+            return new ContentQueryContext(QueryContext.Create(App, User)
+                .WithLanguages(Request.Headers["X-Languages"]))
+                .WithFlatten(Request.Headers.ContainsKey("X-Flatten"))
+                .WithUnpublished(Request.Headers.ContainsKey("X-Unpublished"));
         }
     }
 }

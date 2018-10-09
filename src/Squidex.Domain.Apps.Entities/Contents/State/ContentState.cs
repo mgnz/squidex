@@ -32,9 +32,6 @@ namespace Squidex.Domain.Apps.Entities.Contents.State
         public NamedContentData DataDraft { get; set; }
 
         [JsonProperty]
-        public Status Status { get; set; }
-
-        [JsonProperty]
         public ScheduleJob ScheduleJob { get; set; }
 
         [JsonProperty]
@@ -42,6 +39,9 @@ namespace Squidex.Domain.Apps.Entities.Contents.State
 
         [JsonProperty]
         public bool IsDeleted { get; set; }
+
+        [JsonProperty]
+        public Status Status { get; set; }
 
         protected void On(ContentCreated @event)
         {

@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Squidex.Domain.Apps.Entities.Contents
 {
-    public sealed class SingletonCommandMiddlewareTests
+    public class SingletonCommandMiddlewareTests
     {
         private readonly ICommandBus commandBus = A.Fake<ICommandBus>();
         private readonly SingletonCommandMiddleware sut = new SingletonCommandMiddleware();
@@ -28,7 +28,7 @@ namespace Squidex.Domain.Apps.Entities.Contents
 
             await sut.HandleAsync(context);
 
-            A.CallTo(() => commandBus.PublishAsync(A<ICommand>.That.Matches(x => x is CreateContent)))
+            A.CallTo(() => commandBus.PublishAsync(A<CreateContent>.That.Matches(x => x.Publish)))
                 .MustHaveHappened();
         }
 

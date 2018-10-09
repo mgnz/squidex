@@ -10,7 +10,6 @@ using System.Collections.Immutable;
 using System.Threading.Tasks;
 using FakeItEasy;
 using Squidex.Domain.Apps.Core.Rules;
-using Squidex.Domain.Apps.Core.Rules.Actions;
 using Squidex.Domain.Apps.Core.Rules.Triggers;
 using Squidex.Domain.Apps.Entities.Rules.Commands;
 using Squidex.Domain.Apps.Entities.Schemas;
@@ -25,9 +24,14 @@ namespace Squidex.Domain.Apps.Entities.Rules.Guards
     public class GuardRuleTests
     {
         private readonly Uri validUrl = new Uri("https://squidex.io");
-        private readonly Rule rule_0 = new Rule(new ContentChangedTrigger(), new WebhookAction());
+        private readonly Rule rule_0 = new Rule(new ContentChangedTrigger(), new TestAction());
         private readonly NamedId<Guid> appId = NamedId.Of(Guid.NewGuid(), "my-app");
         private readonly IAppProvider appProvider = A.Fake<IAppProvider>();
+
+        public sealed class TestAction : RuleAction
+        {
+            public Uri Url { get; set; }
+        }
 
         public GuardRuleTests()
         {
@@ -41,7 +45,7 @@ namespace Squidex.Domain.Apps.Entities.Rules.Guards
             var command = CreateCommand(new CreateRule
             {
                 Trigger = null,
-                Action = new WebhookAction
+                Action = new TestAction
                 {
                     Url = validUrl
                 }
@@ -76,7 +80,7 @@ namespace Squidex.Domain.Apps.Entities.Rules.Guards
                 {
                     Schemas = ImmutableList<ContentChangedTriggerSchema>.Empty
                 },
-                Action = new WebhookAction
+                Action = new TestAction
                 {
                     Url = validUrl
                 }
@@ -103,7 +107,7 @@ namespace Squidex.Domain.Apps.Entities.Rules.Guards
                 {
                     Schemas = ImmutableList<ContentChangedTriggerSchema>.Empty
                 },
-                Action = new WebhookAction
+                Action = new TestAction
                 {
                     Url = validUrl
                 }

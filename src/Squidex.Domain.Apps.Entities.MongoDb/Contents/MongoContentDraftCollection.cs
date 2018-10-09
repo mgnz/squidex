@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using NodaTime;
@@ -29,22 +30,25 @@ namespace Squidex.Domain.Apps.Entities.MongoDb.Contents
         {
         }
 
-        protected override async Task SetupCollectionAsync(IMongoCollection<MongoContentEntity> collection)
+        protected override async Task SetupCollectionAsync(IMongoCollection<MongoContentEntity> collection, CancellationToken ct = default(CancellationToken))
         {
-            await collection.Indexes.CreateOneAsync(
-                Index
-                    .Ascending(x => x.IndexedSchemaId)
-                    .Ascending(x => x.Id)
-                    .Ascending(x => x.IsDeleted));
+            await collection.Indexes.CreateManyAsync(
+                new[]
+                {
+                    new CreateIndexModel<MongoContentEntity>(
+                        Index
+                            .Ascending(x => x.IndexedSchemaId)
+                            .Ascending(x => x.Id)
+                            .Ascending(x => x.IsDeleted)),
+                    new CreateIndexModel<MongoContentEntity>(
+                        Index
+                            .Text(x => x.DataText)
+                            .Ascending(x => x.IndexedSchemaId)
+                            .Ascending(x => x.IsDeleted)
+                            .Ascending(x => x.Status)),
+                }, ct);
 
-            await collection.Indexes.CreateOneAsync(
-                Index
-                    .Text(x => x.DataText)
-                    .Ascending(x => x.IndexedSchemaId)
-                    .Ascending(x => x.IsDeleted)
-                    .Ascending(x => x.Status));
-
-            await base.SetupCollectionAsync(collection);
+            await base.SetupCollectionAsync(collection, ct);
         }
 
         public async Task<IReadOnlyList<Guid>> QueryNotFoundAsync(Guid appId, Guid schemaId, IList<Guid> ids)
@@ -54,6 +58,15 @@ namespace Squidex.Domain.Apps.Entities.MongoDb.Contents
                     .ToListAsync();
 
             return ids.Except(contentEntities.Select(x => Guid.Parse(x["_id"].AsString))).ToList();
+        }
+
+        public async Task<IReadOnlyList<Guid>> QueryIdsAsync(Guid appId)
+        {
+            var contentEntities =
+                await Collection.Find(x => x.IndexedAppId == appId).Only(x => x.Id)
+                    .ToListAsync();
+
+            return contentEntities.Select(x => Guid.Parse(x["_id"].AsString)).ToList();
         }
 
         public Task QueryScheduledWithoutDataAsync(Instant now, Func<IContentEntity, Task> callback)
@@ -89,7 +102,7 @@ namespace Squidex.Domain.Apps.Entities.MongoDb.Contents
             {
                 var schema = await getSchema(contentEntity.IndexedAppId, contentEntity.IndexedSchemaId);
 
-                contentEntity?.ParseData(schema.SchemaDef);
+                contentEntity.ParseData(schema.SchemaDef);
 
                 return (SimpleMapper.Map(contentEntity, new ContentState()), contentEntity.Version);
             }

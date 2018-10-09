@@ -15,12 +15,14 @@ using Orleans;
 using Squidex.Domain.Apps.Core.Apps;
 using Squidex.Domain.Apps.Core.HandleRules;
 using Squidex.Domain.Apps.Core.Scripting;
+using Squidex.Domain.Apps.Core.Tags;
 using Squidex.Domain.Apps.Entities;
 using Squidex.Domain.Apps.Entities.Apps;
 using Squidex.Domain.Apps.Entities.Apps.Commands;
 using Squidex.Domain.Apps.Entities.Apps.Indexes;
 using Squidex.Domain.Apps.Entities.Apps.Templates;
 using Squidex.Domain.Apps.Entities.Assets;
+using Squidex.Domain.Apps.Entities.Assets.Commands;
 using Squidex.Domain.Apps.Entities.Backup;
 using Squidex.Domain.Apps.Entities.Contents;
 using Squidex.Domain.Apps.Entities.Contents.Commands;
@@ -31,7 +33,9 @@ using Squidex.Domain.Apps.Entities.Rules;
 using Squidex.Domain.Apps.Entities.Rules.Commands;
 using Squidex.Domain.Apps.Entities.Rules.Indexes;
 using Squidex.Domain.Apps.Entities.Schemas;
+using Squidex.Domain.Apps.Entities.Schemas.Commands;
 using Squidex.Domain.Apps.Entities.Schemas.Indexes;
+using Squidex.Domain.Apps.Entities.Tags;
 using Squidex.Infrastructure.Assets;
 using Squidex.Infrastructure.Commands;
 using Squidex.Infrastructure.Migrations;
@@ -50,8 +54,7 @@ namespace Squidex.Config.Domain
                     c.GetRequiredService<IOptions<MyUrlsOptions>>(),
                     c.GetRequiredService<IAssetStore>(),
                     exposeSourceUrl))
-                .As<IGraphQLUrlGenerator>()
-                .As<IRuleUrlGenerator>();
+                .As<IGraphQLUrlGenerator>().As<IRuleUrlGenerator>();
 
             services.AddSingletonAs<CachingGraphQLService>()
                 .As<IGraphQLService>();
@@ -61,6 +64,9 @@ namespace Squidex.Config.Domain
 
             services.AddSingletonAs<AppProvider>()
                 .As<IAppProvider>();
+
+            services.AddSingletonAs<AssetQueryService>()
+                .As<IAssetQueryService>();
 
             services.AddSingletonAs<ContentQueryService>()
                 .As<IContentQueryService>();
@@ -80,6 +86,44 @@ namespace Squidex.Config.Domain
             services.AddSingletonAs<EdmModelBuilder>()
                 .AsSelf();
 
+            services.AddSingletonAs<GrainTagService>()
+                .As<ITagService>();
+
+            services.AddSingletonAs<FileTypeTagGenerator>()
+                .As<ITagGenerator<CreateAsset>>();
+
+            services.AddSingletonAs<ImageTagGenerator>()
+                .As<ITagGenerator<CreateAsset>>();
+
+            services.AddSingletonAs<JintScriptEngine>()
+                .As<IScriptEngine>();
+
+            services.AddCommandPipeline();
+            services.AddBackupHandlers();
+
+            services.AddSingleton<Func<IGrainCallContext, string>>(DomainObjectGrainFormatter.Format);
+
+            services.AddSingleton(c =>
+            {
+                var uiOptions = c.GetRequiredService<IOptions<MyUIOptions>>();
+
+                var result = new InitialPatterns();
+
+                foreach (var pattern in uiOptions.Value.RegexSuggestions)
+                {
+                    if (!string.IsNullOrWhiteSpace(pattern.Key) &&
+                        !string.IsNullOrWhiteSpace(pattern.Value))
+                    {
+                        result[Guid.NewGuid()] = new AppPattern(pattern.Key, pattern.Value);
+                    }
+                }
+
+                return result;
+            });
+        }
+
+        private static void AddCommandPipeline(this IServiceCollection services)
+        {
             services.AddSingletonAs<InMemoryCommandBus>()
                 .As<ICommandBus>();
 
@@ -104,6 +148,9 @@ namespace Squidex.Config.Domain
             services.AddSingletonAs<AssetCommandMiddleware>()
                 .As<ICommandMiddleware>();
 
+            services.AddSingletonAs<AppsByNameIndexCommandMiddleware>()
+                .As<ICommandMiddleware>();
+
             services.AddSingletonAs<GrainCommandMiddleware<AppCommand, IAppGrain>>()
                 .As<ICommandMiddleware>();
 
@@ -114,9 +161,6 @@ namespace Squidex.Config.Domain
                 .As<ICommandMiddleware>();
 
             services.AddSingletonAs<GrainCommandMiddleware<RuleCommand, IRuleGrain>>()
-                .As<ICommandMiddleware>();
-
-            services.AddSingletonAs<AppsByNameIndexCommandMiddleware>()
                 .As<ICommandMiddleware>();
 
             services.AddSingletonAs<AppsByUserIndexCommandMiddleware>()
@@ -134,36 +178,37 @@ namespace Squidex.Config.Domain
             services.AddSingletonAs<CreateBlogCommandMiddleware>()
                 .As<ICommandMiddleware>();
 
-            services.AddSingletonAs<CreateProfileCommandMiddleware>()
+            services.AddSingletonAs<CreateIdentityCommandMiddleware>()
                 .As<ICommandMiddleware>();
 
-            services.AddSingletonAs<JintScriptEngine>()
-                .As<IScriptEngine>();
+            services.AddSingletonAs<CreateProfileCommandMiddleware>()
+                .As<ICommandMiddleware>();
+        }
 
-            services.AddSingleton<Func<IGrainCallContext, string>>(DomainObjectGrainFormatter.Format);
+        private static void AddBackupHandlers(this IServiceCollection services)
+        {
+            services.AddTransientAs<BackupApps>()
+                .As<BackupHandler>();
 
-            services.AddSingleton(c =>
-            {
-                var uiOptions = c.GetRequiredService<IOptions<MyUIOptions>>();
+            services.AddTransientAs<BackupAssets>()
+                .As<BackupHandler>();
 
-                var result = new InitialPatterns();
+            services.AddTransientAs<BackupContents>()
+                .As<BackupHandler>();
 
-                foreach (var pattern in uiOptions.Value.RegexSuggestions)
-                {
-                    if (!string.IsNullOrWhiteSpace(pattern.Key) &&
-                        !string.IsNullOrWhiteSpace(pattern.Value))
-                    {
-                        result[Guid.NewGuid()] = new AppPattern(pattern.Key, pattern.Value);
-                    }
-                }
+            services.AddTransientAs<BackupRules>()
+                .As<BackupHandler>();
 
-                return result;
-            });
+            services.AddTransientAs<BackupSchemas>()
+                .As<BackupHandler>();
         }
 
         public static void AddMyMigrationServices(this IServiceCollection services)
         {
             services.AddSingletonAs<Migrator>()
+                .AsSelf();
+
+            services.AddTransientAs<Rebuilder>()
                 .AsSelf();
 
             services.AddTransientAs<MigrationPath>()
@@ -195,9 +240,6 @@ namespace Squidex.Config.Domain
 
             services.AddTransientAs<StopEventConsumers>()
                 .As<IMigration>();
-
-            services.AddTransientAs<Rebuilder>()
-                .AsSelf();
         }
     }
 }

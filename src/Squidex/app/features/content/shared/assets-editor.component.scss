@@ -18,19 +18,41 @@
     }
 }
 
+.list-view {
+    margin-bottom: 1rem;
+}
+
+.list {
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+.body {
+    margin-bottom: -.25rem;
+    margin-top: 1rem;
+}
+
+.unrow {
+    display: block;
+    padding-left: 8px;
+    padding-right: 8px;
+    margin: 0;
+}
+
 .drop-area {
     & {
         @include transition(border-color .4s ease);
         @include border-radius;
+        @include flex-box;
+        @include truncate;
         border: 2px dashed $color-border;
-        height: $asset-height;
-        width: $asset-height;
+        height: 2.5rem;
         font-size: 1.2rem;
         font-weight: normal;
         text-align: center;
-        padding: 3.5rem 2rem;
-        cursor: pointer;
+        padding: 0 2rem;
         color: darken($color-border, 30%);
+        cursor: pointer;
     }
 
     &:hover {

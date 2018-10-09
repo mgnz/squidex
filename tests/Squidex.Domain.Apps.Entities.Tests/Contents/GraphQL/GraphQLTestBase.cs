@@ -20,7 +20,6 @@ using Squidex.Domain.Apps.Core.Contents;
 using Squidex.Domain.Apps.Core.Schemas;
 using Squidex.Domain.Apps.Entities.Apps;
 using Squidex.Domain.Apps.Entities.Assets;
-using Squidex.Domain.Apps.Entities.Assets.Repositories;
 using Squidex.Domain.Apps.Entities.Contents.TestData;
 using Squidex.Domain.Apps.Entities.Schemas;
 using Squidex.Infrastructure;
@@ -38,7 +37,7 @@ namespace Squidex.Domain.Apps.Entities.Contents.GraphQL
         protected static readonly string appName = "my-app";
         protected readonly Schema schemaDef;
         protected readonly IContentQueryService contentQuery = A.Fake<IContentQueryService>();
-        protected readonly IAssetRepository assetRepository = A.Fake<IAssetRepository>();
+        protected readonly IAssetQueryService assetQuery = A.Fake<IAssetQueryService>();
         protected readonly ISchemaEntity schema = A.Fake<ISchemaEntity>();
         protected readonly IMemoryCache cache = new MemoryCache(Options.Create(new MemoryCacheOptions()));
         protected readonly IAppProvider appProvider = A.Fake<IAppProvider>();
@@ -91,7 +90,7 @@ namespace Squidex.Domain.Apps.Entities.Contents.GraphQL
 
             A.CallTo(() => appProvider.GetSchemasAsync(appId)).Returns(allSchemas);
 
-            sut = new CachingGraphQLService(cache, appProvider, assetRepository, contentQuery, new FakeUrlGenerator());
+            sut = new CachingGraphQLService(cache, appProvider, assetQuery, contentQuery, new FakeUrlGenerator());
         }
 
         protected static IContentEntity CreateContent(Guid id, Guid refId, Guid assetId, NamedContentData data = null)
@@ -142,9 +141,9 @@ namespace Squidex.Domain.Apps.Entities.Contents.GraphQL
                 Id = id,
                 Version = 1,
                 Created = now,
-                CreatedBy = new RefToken("subject", "user1"),
+                CreatedBy = new RefToken(RefTokenType.Subject, "user1"),
                 LastModified = now,
-                LastModifiedBy = new RefToken("subject", "user2"),
+                LastModifiedBy = new RefToken(RefTokenType.Subject, "user2"),
                 Data = data
             };
 
@@ -160,9 +159,9 @@ namespace Squidex.Domain.Apps.Entities.Contents.GraphQL
                 Id = id,
                 Version = 1,
                 Created = now,
-                CreatedBy = new RefToken("subject", "user1"),
+                CreatedBy = new RefToken(RefTokenType.Subject, "user1"),
                 LastModified = now,
-                LastModifiedBy = new RefToken("subject", "user2"),
+                LastModifiedBy = new RefToken(RefTokenType.Subject, "user2"),
                 FileName = "MyFile.png",
                 FileSize = 1024,
                 FileVersion = 123,
@@ -175,17 +174,22 @@ namespace Squidex.Domain.Apps.Entities.Contents.GraphQL
             return asset;
         }
 
-        protected static void AssertResult(object expected, (object Data, object[] Errors) result, bool checkErrors = true)
+        protected static void AssertResult(object expected, (bool HasErrors, object Response) result, bool checkErrors = true)
         {
-            if (checkErrors && (result.Errors != null && result.Errors.Length > 0))
+            if (checkErrors && result.HasErrors)
             {
-                throw new InvalidOperationException(result.Errors[0]?.ToString());
+                throw new InvalidOperationException(Serialize(result));
             }
 
-            var resultJson = JsonConvert.SerializeObject(new { data = result.Data }, Formatting.Indented);
+            var resultJson = JsonConvert.SerializeObject(result.Response, Formatting.Indented);
             var expectJson = JsonConvert.SerializeObject(expected, Formatting.Indented);
 
             Assert.Equal(expectJson, resultJson);
+        }
+
+        private static string Serialize((bool HasErrors, object Response) result)
+        {
+            return JsonConvert.SerializeObject(result);
         }
     }
 }

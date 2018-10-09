@@ -14,7 +14,7 @@ namespace Squidex.Infrastructure.UsageTracking
 {
     public sealed class CachingUsageTracker : CachingProviderBase, IUsageTracker
     {
-        private static readonly TimeSpan CacheTime = TimeSpan.FromMinutes(10);
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
         private readonly IUsageTracker inner;
 
         public CachingUsageTracker(IUsageTracker inner, IMemoryCache cache)
@@ -25,32 +25,28 @@ namespace Squidex.Infrastructure.UsageTracking
             this.inner = inner;
         }
 
-        public Task<IReadOnlyList<StoredUsage>> QueryAsync(string key, DateTime fromDate, DateTime toDate)
+        public Task<IReadOnlyDictionary<string, IReadOnlyList<DateUsage>>> QueryAsync(string key, DateTime fromDate, DateTime toDate)
         {
             return inner.QueryAsync(key, fromDate, toDate);
         }
 
-        public Task TrackAsync(string key, double weight, double elapsedMs)
+        public Task TrackAsync(string key, string category, double weight, double elapsedMs)
         {
-            return inner.TrackAsync(key, weight, elapsedMs);
+            return inner.TrackAsync(key, category, weight, elapsedMs);
         }
 
-        public async Task<long> GetMonthlyCallsAsync(string key, DateTime date)
+        public Task<long> GetMonthlyCallsAsync(string key, DateTime date)
         {
             Guard.NotNull(key, nameof(key));
 
             var cacheKey = string.Concat(key, date);
 
-            if (Cache.TryGetValue<long>(cacheKey, out var result))
+            return Cache.GetOrCreateAsync(cacheKey, entry =>
             {
-                return result;
-            }
+                entry.AbsoluteExpirationRelativeToNow = CacheDuration;
 
-            result = await inner.GetMonthlyCallsAsync(key, date);
-
-            Cache.Set(cacheKey, result, CacheTime);
-
-            return result;
+                return inner.GetMonthlyCallsAsync(key, date);
+            });
         }
     }
 }

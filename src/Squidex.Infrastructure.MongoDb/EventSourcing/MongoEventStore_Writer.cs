@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -19,6 +18,16 @@ namespace Squidex.Infrastructure.EventSourcing
     {
         private const int MaxWriteAttempts = 20;
         private static readonly BsonTimestamp EmptyTimestamp = new BsonTimestamp(0);
+
+        public Task DeleteStreamAsync(string streamName)
+        {
+            return Collection.DeleteManyAsync(x => x.EventStream == streamName);
+        }
+
+        public Task DeleteManyAsync(string property, object value)
+        {
+            return Collection.DeleteManyAsync(Filter.Eq(CreateIndexPath(property), value));
+        }
 
         public Task AppendAsync(Guid commitId, string streamName, ICollection<EventData> events)
         {

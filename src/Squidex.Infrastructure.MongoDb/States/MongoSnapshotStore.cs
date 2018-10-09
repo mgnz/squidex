@@ -9,22 +9,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Newtonsoft.Json;
 using Squidex.Infrastructure.Log;
 using Squidex.Infrastructure.MongoDb;
 
 namespace Squidex.Infrastructure.States
 {
-    public class MongoSnapshotStore<T, TKey> : MongoRepositoryBase<MongoState<T, TKey>>, ISnapshotStore<T, TKey>, IInitializable
+    public class MongoSnapshotStore<T, TKey> : MongoRepositoryBase<MongoState<T, TKey>>, ISnapshotStore<T, TKey>
     {
-        private readonly JsonSerializer serializer;
-
-        public MongoSnapshotStore(IMongoDatabase database, JsonSerializer serializer)
+        public MongoSnapshotStore(IMongoDatabase database)
             : base(database)
         {
-            Guard.NotNull(serializer, nameof(serializer));
-
-            this.serializer = serializer;
         }
 
         protected override string CollectionName()
@@ -66,6 +60,14 @@ namespace Squidex.Infrastructure.States
             using (Profiler.TraceMethod<MongoSnapshotStore<T, TKey>>())
             {
                 await Collection.Find(new BsonDocument()).ForEachAsync(x => callback(x.Doc, x.Version));
+            }
+        }
+
+        public async Task RemoveAsync(TKey key)
+        {
+            using (Profiler.TraceMethod<MongoSnapshotStore<T, TKey>>())
+            {
+                await Collection.DeleteOneAsync(x => x.Id.Equals(key));
             }
         }
     }

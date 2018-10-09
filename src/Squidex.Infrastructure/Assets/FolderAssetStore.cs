@@ -5,6 +5,7 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -30,7 +31,7 @@ namespace Squidex.Infrastructure.Assets
             directory = new DirectoryInfo(path);
         }
 
-        public void Initialize()
+        public Task InitializeAsync(CancellationToken ct = default(CancellationToken))
         {
             try
             {
@@ -42,13 +43,12 @@ namespace Squidex.Infrastructure.Assets
                 log.LogInformation(w => w
                     .WriteProperty("action", "FolderAssetStoreConfigured")
                     .WriteProperty("path", directory.FullName));
+
+                return TaskHelper.Done;
             }
-            catch
+            catch (Exception ex)
             {
-                if (!directory.Exists)
-                {
-                    throw new ConfigurationException($"Cannot access directory {directory.FullName}");
-                }
+                throw new ConfigurationException($"Cannot access directory {directory.FullName}", ex);
             }
         }
 
@@ -57,26 +57,6 @@ namespace Squidex.Infrastructure.Assets
             var file = GetFile(id, version, suffix);
 
             return file.FullName;
-        }
-
-        public async Task UploadAsync(string name, Stream stream, CancellationToken ct = default(CancellationToken))
-        {
-            var file = GetFile(name);
-
-            using (var fileStream = file.OpenWrite())
-            {
-                await stream.CopyToAsync(fileStream, BufferSize, ct);
-            }
-        }
-
-        public async Task UploadAsync(string id, long version, string suffix, Stream stream, CancellationToken ct = default(CancellationToken))
-        {
-            var file = GetFile(id, version, suffix);
-
-            using (var fileStream = file.OpenWrite())
-            {
-                await stream.CopyToAsync(fileStream, BufferSize, ct);
-            }
         }
 
         public async Task DownloadAsync(string id, long version, string suffix, Stream stream, CancellationToken ct = default(CancellationToken))
@@ -92,42 +72,72 @@ namespace Squidex.Infrastructure.Assets
             }
             catch (FileNotFoundException ex)
             {
-                throw new AssetNotFoundException($"Asset {id}, {version} not found.", ex);
+                throw new AssetNotFoundException($"Id={id}, Version={version}", ex);
             }
         }
 
-        public Task CopyAsync(string name, string id, long version, string suffix, CancellationToken ct = default(CancellationToken))
+        public Task CopyAsync(string sourceFileName, string id, long version, string suffix, CancellationToken ct = default(CancellationToken))
         {
+            var targetFile = GetFile(id, version, suffix);
+
             try
             {
-                var file = GetFile(name);
+                var file = GetFile(sourceFileName);
 
-                file.CopyTo(GetPath(id, version, suffix));
+                file.CopyTo(targetFile.FullName);
 
                 return TaskHelper.Done;
             }
+            catch (IOException) when (targetFile.Exists)
+            {
+                throw new AssetAlreadyExistsException(targetFile.Name);
+            }
             catch (FileNotFoundException ex)
             {
-                throw new AssetNotFoundException($"Asset {name} not found.", ex);
+                throw new AssetNotFoundException(sourceFileName, ex);
             }
+        }
+
+        public Task UploadAsync(string id, long version, string suffix, Stream stream, CancellationToken ct = default(CancellationToken))
+        {
+            return UploadCoreAsync(GetFile(id, version, suffix), stream, ct);
+        }
+
+        public Task UploadAsync(string fileName, Stream stream, CancellationToken ct = default(CancellationToken))
+        {
+            return UploadCoreAsync(GetFile(fileName), stream, ct);
         }
 
         public Task DeleteAsync(string id, long version, string suffix)
         {
-            var file = GetFile(id, version, suffix);
+            return DeleteFileCoreAsync(GetFile(id, version, suffix));
+        }
 
+        public Task DeleteAsync(string fileName)
+        {
+            return DeleteFileCoreAsync(GetFile(fileName));
+        }
+
+        private static Task DeleteFileCoreAsync(FileInfo file)
+        {
             file.Delete();
 
             return TaskHelper.Done;
         }
 
-        public Task DeleteAsync(string name)
+        private static async Task UploadCoreAsync(FileInfo file, Stream stream, CancellationToken ct = default(CancellationToken))
         {
-            var file = GetFile(name);
-
-            file.Delete();
-
-            return TaskHelper.Done;
+            try
+            {
+                using (var fileStream = file.Open(FileMode.CreateNew, FileAccess.Write))
+                {
+                    await stream.CopyToAsync(fileStream, BufferSize, ct);
+                }
+            }
+            catch (IOException) when (file.Exists)
+            {
+                throw new AssetAlreadyExistsException(file.Name);
+            }
         }
 
         private FileInfo GetFile(string id, long version, string suffix)
@@ -137,11 +147,11 @@ namespace Squidex.Infrastructure.Assets
             return GetFile(GetPath(id, version, suffix));
         }
 
-        private FileInfo GetFile(string name)
+        private FileInfo GetFile(string fileName)
         {
-            Guard.NotNullOrEmpty(name, nameof(name));
+            Guard.NotNullOrEmpty(fileName, nameof(fileName));
 
-            return new FileInfo(GetPath(name));
+            return new FileInfo(GetPath(fileName));
         }
 
         private string GetPath(string name)

@@ -5,9 +5,7 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Squidex.Areas.Api;
@@ -34,14 +32,14 @@ namespace Squidex
         {
             services.AddOrleansSilo();
             services.AddAppServices(configuration);
+
+            services.AddHostedService<SystemExtensions.InitializeHostedService>();
+            services.AddHostedService<SystemExtensions.MigratorHostedService>();
         }
 
         public void Configure(IApplicationBuilder app)
         {
             app.ApplicationServices.LogConfiguration();
-            app.ApplicationServices.RunInitialization();
-            app.ApplicationServices.RunMigrate();
-            app.ApplicationServices.RunRunnables();
 
             app.UseMyLocalCache();
             app.UseMyCors();
