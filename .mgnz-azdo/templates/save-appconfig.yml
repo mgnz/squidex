@@ -1,0 +1,56 @@
+parameters:
+  appSettings.urls.baseUrl: ''
+  env: ''
+  appSettings.azureBlob.connectionString: ''
+  appSettings.eventStore.mongoDb.configuration: ''
+  appSettings.store.mongoDb.configuration: ''
+  appSettings.identity.adminEmail: ''
+  appSettings.identity.AdminPassword: ''
+  Build.SourcesDirectory: ''
+
+steps:
+- powershell: |
+   $config = "{
+     ""urls"": {
+       ""baseUrl"": ""${{ parameters.appSettings.playpen.urls.baseUrl }}""
+     },
+   
+     ""assetStore"": {
+       ""type"": ""AzureBlob""
+     },
+   
+     ""azureBlob"": {
+       ""containerName"": ""{{ parameters.env }}-assetstore"",
+       ""connectionString"": ""{{ parameters.appSettings.azureBlob.connectionString }}""
+     },
+   
+     ""eventStore"": {
+       ""mongoDb"": {
+         ""configuration"": ""{{ parameters.appSettings.eventStore.mongoDb.configuration }}"",
+         ""database"": ""{{ parameters.env }}_squidexeventdb""
+       }
+     },
+   
+     ""store"": {
+       ""mongoDb"": {
+         ""configuration"": ""{{ parameters.appSettings.store.mongoDb.configuration }}"",
+         ""contentDatabase"": ""{{ parameters.env }}_squidexstorcontentdb"",
+         ""database"": ""{{ parameters.env }}_squidexstoredb""
+       }
+     },
+   
+     ""identity"" : {
+       ""googleClient"": """",
+       ""googleSecret"": """",
+       ""githubClient"": """",
+       ""githubSecret"": """",
+       ""microsoftClient"": """",
+       ""microsoftSecret"": """",
+       ""adminEmail"": ""{{ parameters.appSettings.identity.adminEmail }}"",
+       ""AdminPassword"": ""{{ parameters.appSettings.identity.AdminPassword }}""
+     }
+   }
+   "
+   write-host $config
+   set-content -value $config -path "{{ parameters.Build.SourcesDirectory }}/src/Squidex/appsettings.{{ parameters.env }}.json"
+  displayName: 'Save Appconfig'

@@ -1,0 +1,199 @@
+#
+# Documentation : https://docs.microsoft.com/en-us/azure/devops/pipelines/build/triggers?view=vsts&tabs=yaml
+#
+
+#Your build pipeline references the ‘BuildConfiguration’ variable, which you’ve selected to be settable at queue time. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab, and then select the option to make it settable at queue time. See https://go.microsoft.com/fwlink/?linkid=865971
+
+
+pool:
+  name: Default
+  # Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+  #
+  # $(BuildConfiguration)
+  #
+  # $(env.playpen)
+  # $(appSettings.playpen.urls.baseUrl)
+  # $(appSettings.playpen.azureBlob.connectionString)
+  # $(appSettings.playpen.eventStore.mongoDb.configuration)
+  # $(appSettings.playpen.store.mongoDb.configuration)
+  # $(appSettings.playpen.identity.adminEmail)
+  # $(appSettings.playpen.identity.adminPassword)
+  #
+  # $(env.preprod)
+  # $(appSettings.preprod.urls.baseUrl)
+  # $(appSettings.preprod.azureBlob.connectionString)
+  # $(appSettings.preprod.eventStore.mongoDb.configuration)
+  # $(appSettings.preprod.store.mongoDb.configuration)
+  # $(appSettings.preprod.identity.adminEmail)
+  # $(appSettings.preprod.identity.adminPassword)
+  #
+  # $(env.prod)
+  # $(appSettings.prod.urls.baseUrl)
+  # $(appSettings.prod.azureBlob.connectionString)
+  # $(appSettings.prod.eventStore.mongoDb.configuration)
+  # $(appSettings.prod.store.mongoDb.configuration)
+  # $(appSettings.prod.identity.adminEmail)
+  # $(appSettings.prod.identity.adminPassword)
+
+
+steps:
+# - task: DotNetCoreInstaller@0
+#   displayName: 'Use .NET Core sdk 2.2.100'
+#   inputs:
+#     version: 2.2.100
+
+# - task: NodeTool@0
+#   displayName: 'Use Node 8.x'
+#   inputs:
+#     versionSpec: 8.x
+#     checkLatest: true
+
+- template: templates/save-appconfig.yml 
+  parameters:
+    appSettings.urls.baseUrl: '$(appSettings.playpen.urls.baseUrl)'
+    env: '$(env.playpen)'
+    appSettings.azureBlob.connectionString: '$(appSettings.playpen.azureBlob.connectionString)'
+    appSettings.eventStore.mongoDb.configuration: '$(appSettings.playpen.eventStore.mongoDb.configuration)'
+    appSettings.store.mongoDb.configuration: '$(appSettings.playpen.store.mongoDb.configuration)'
+    appSettings.identity.adminEmail: '$(appSettings.playpen.identity.adminEmail)'
+    appSettings.identity.adminPassword: '$(appSettings.playpen.identity.adminPassword)'
+    Build.SourcesDirectory: '$(Build.SourcesDirector)'
+
+
+# - powershell: |
+#    $config = "<?xml version=""1.0"" encoding=""utf-8""?>
+#    <configuration xmlns:xdt=""http://schemas.microsoft.com/XML-Document-Transform"">
+#      <system.webServer>
+#        <aspNetCore>
+#          <environmentVariables>
+#            <environmentVariable xdt:Transform=""SetAttributes"" xdt:Locator=""Match(name)"" name=""ASPNETCORE_ENVIRONMENT"" value=""$(env.playpen)"" />
+#          </environmentVariables>
+#        </aspNetCore>
+#      </system.webServer>
+#    </configuration>
+#    "
+#    write-host $config
+#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.$(env.playpen).config"
+#   displayName: 'Save Web Config (playpen)'
+
+# - powershell: |
+#    $config = "
+#    "
+#    write-host $config
+#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/appsettings.preprod.json"
+#   displayName: 'Save Settings (preprod)'
+
+# - powershell: |
+#    $config = "<?xml version=""1.0"" encoding=""utf-8""?>
+#    <configuration xmlns:xdt=""http://schemas.microsoft.com/XML-Document-Transform"">
+#      <system.webServer>
+#        <aspNetCore>
+#          <environmentVariables>
+#            <environmentVariable xdt:Transform=""SetAttributes"" xdt:Locator=""Match(name)"" name=""ASPNETCORE_ENVIRONMENT"" value=""$(env.preprod)"" />
+#          </environmentVariables>
+#        </aspNetCore>
+#      </system.webServer>
+#    </configuration>
+#    "
+#    write-host $config
+#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.$(env.preprod).config"
+#   displayName: 'Save Web Config (preprod)'
+
+# - powershell: |
+#    $config = "
+#    "
+#    write-host $config
+#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/appsettings.production.json"
+#   displayName: 'Save Settings (production)'
+
+# - powershell: |
+#    $config = "<?xml version=""1.0"" encoding=""utf-8""?>
+#    <configuration xmlns:xdt=""http://schemas.microsoft.com/XML-Document-Transform"">
+#      <system.webServer>
+#        <aspNetCore>
+#          <environmentVariables>
+#            <environmentVariable xdt:Transform=""SetAttributes"" xdt:Locator=""Match(name)"" name=""ASPNETCORE_ENVIRONMENT"" value=""$(env.prod)"" />
+#          </environmentVariables>
+#        </aspNetCore>
+#      </system.webServer>
+#    </configuration>
+#    "
+#    write-host $config
+#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.$(env.prod).config"
+#   displayName: 'Save Web Config (production)'
+
+# - powershell: |
+#    $config = "<?xml version=""1.0"" encoding=""utf-8""?>
+#    <configuration>
+#        <system.webServer>
+#            <modules>
+#                <remove name=""WebDAVModule"" />
+#            </modules>
+#            <handlers>
+#                <remove name=""WebDAV"" />
+#                <add name=""aspNetCore"" path=""*"" verb=""*"" modules=""AspNetCoreModule"" resourceType=""Unspecified"" />
+#            </handlers>
+#            <aspNetCore processPath=""dotnet"" arguments="".\Squidex.dll"" stdoutLogEnabled=""true"" stdoutLogFile=""..\..\logs\cms"" hostingModel=""OutOfProcess"">
+#                <environmentVariables>
+#                    <environmentVariable name=""ASPNETCORE_ENVIRONMENT"" value=""development"" />
+#                </environmentVariables>
+#            </aspNetCore>
+#        </system.webServer>
+#    </configuration>
+#    "
+#    write-host $config
+#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.config"
+#   displayName: 'Save Web Config (baseline)'
+
+# - task: Npm@1
+#   displayName: 'npm install --global --production windows-build-tools'
+#   inputs:
+#     command: custom
+#     workingDir: src/Squidex
+#     verbose: false
+#     customCommand: 'install --global --production windows-build-tools'
+#   enabled: false
+
+# - task: Npm@1
+#   displayName: 'npm install'
+#   inputs:
+#     workingDir: src/Squidex
+#     verbose: false
+
+# - task: Npm@1
+#   displayName: 'npm rebuild node-sass --force'
+#   inputs:
+#     command: custom
+#     workingDir: src/Squidex
+#     verbose: false
+#     customCommand: 'rebuild node-sass --force'
+
+# - task: Npm@1
+#   displayName: 'npm run build'
+#   inputs:
+#     command: custom
+#     workingDir: src/Squidex
+#     verbose: false
+#     customCommand: 'run build'
+
+# - task: DotNetCoreCLI@2
+#   displayName: 'dotnet restore'
+#   inputs:
+#     command: restore
+#     projects: '**/*.csproj'
+#     feedsToUse: config
+#     nugetConfigPath: NuGet.Config
+#     verbosityRestore: Normal
+
+# - task: DotNetCoreCLI@2
+#   displayName: 'dotnet publish'
+#   inputs:
+#     command: publish
+#     arguments: '--configuration $(BuildConfiguration) --output "$(Build.ArtifactStagingDirectory)/package/"'
+
+# - task: PublishBuildArtifacts@1
+#   displayName: 'Publish Artifact'
+#   inputs:
+#     PathtoPublish: '$(build.artifactstagingdirectory)'
+#   condition: succeededOrFailed()
+
