@@ -7,13 +7,12 @@
 
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { catchError, distinctUntilChanged, map, tap } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 
 import {
     DialogService,
     ErrorDto,
     ImmutableArray,
-    ResourceLinks,
     shareMapSubscribed,
     shareSubscribed,
     State,
@@ -34,9 +33,6 @@ interface Snapshot {
     // All loaded contributors.
     contributors: ContributorsList;
 
-    // Indicates if the maximum number of contributors are reached.
-    isMaxReached?: boolean;
-
     // Indicates if the contributors are loaded.
     isLoaded?: boolean;
 
@@ -48,9 +44,6 @@ interface Snapshot {
 
     // Indicates if the user can add a contributor.
     canCreate?: boolean;
-
-    // The links.
-    _links?: ResourceLinks;
 }
 
 type ContributorsList = ImmutableArray<ContributorDto>;
@@ -58,20 +51,16 @@ type ContributorsList = ImmutableArray<ContributorDto>;
 @Injectable()
 export class ContributorsState extends State<Snapshot> {
     public contributors =
-        this.changes.pipe(map(x => x.contributors),
-            distinctUntilChanged());
+        this.project(x => x.contributors);
 
     public isLoaded =
-        this.changes.pipe(map(x => !!x.isLoaded),
-            distinctUntilChanged());
+        this.project(x => !!x.isLoaded);
 
     public maxContributors =
-        this.changes.pipe(map(x => x.maxContributors),
-            distinctUntilChanged());
+        this.project(x => x.maxContributors);
 
     public canCreate =
-        this.changes.pipe(map(x => !!x.canCreate),
-            distinctUntilChanged());
+        this.project(x => !!x.canCreate);
 
     constructor(
         private readonly contributorsService: ContributorsService,
@@ -122,16 +111,11 @@ export class ContributorsState extends State<Snapshot> {
 
     private replaceContributors(version: Version, payload: ContributorsPayload) {
         this.next(s => {
-            const maxContributors = payload.maxContributors || s.maxContributors;
+            const { canCreate, items, maxContributors } = payload;
 
-            const isLoaded = true;
-            const isMaxReached = maxContributors > 0 && maxContributors <= payload.items.length;
+            const contributors = ImmutableArray.of(items);
 
-            const contributors = ImmutableArray.of(payload.items);
-
-            const { _links, canCreate } = payload;
-
-            return { ...s, contributors, maxContributors, isLoaded, isMaxReached, version: version, _links, canCreate };
+            return { ...s, contributors, maxContributors, isLoaded: true, version, canCreate };
         });
     }
 

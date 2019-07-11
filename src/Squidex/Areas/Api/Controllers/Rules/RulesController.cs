@@ -58,9 +58,12 @@ namespace Squidex.Areas.Api.Controllers.Rules
         [ApiCosts(0)]
         public IActionResult GetActions()
         {
-            var etag = string.Join(";", ruleRegistry.Actions.Select(x => x.Key)).Sha256Base64();
+            var etag = string.Concat(ruleRegistry.Actions.Select(x => x.Key)).Sha256Base64();
 
-            var response = ruleRegistry.Actions.ToDictionary(x => x.Key, x => RuleElementDto.FromDefinition(x.Value));
+            var response = Deferred.Response(() =>
+            {
+                return ruleRegistry.Actions.ToDictionary(x => x.Key, x => RuleElementDto.FromDefinition(x.Value));
+            });
 
             Response.Headers[HeaderNames.ETag] = etag;
 
@@ -82,11 +85,14 @@ namespace Squidex.Areas.Api.Controllers.Rules
         [ApiCosts(1)]
         public async Task<IActionResult> GetRules(string app)
         {
-            var entities = await appProvider.GetRulesAsync(AppId);
+            var rules = await appProvider.GetRulesAsync(AppId);
 
-            var response = RulesDto.FromRules(entities, this, app);
+            var response = Deferred.Response(() =>
+            {
+                return RulesDto.FromRules(rules, this, app);
+            });
 
-            Response.Headers[HeaderNames.ETag] = response.GenerateEtag();
+            Response.Headers[HeaderNames.ETag] = rules.ToEtag();
 
             return Ok(response);
         }
@@ -253,9 +259,9 @@ namespace Squidex.Areas.Api.Controllers.Rules
         [ApiCosts(0)]
         public async Task<IActionResult> PutEvent(string app, Guid id)
         {
-            var entity = await ruleEventsRepository.FindAsync(id);
+            var ruleEvent = await ruleEventsRepository.FindAsync(id);
 
-            if (entity == null)
+            if (ruleEvent == null)
             {
                 return NotFound();
             }
@@ -280,9 +286,9 @@ namespace Squidex.Areas.Api.Controllers.Rules
         [ApiCosts(0)]
         public async Task<IActionResult> DeleteEvent(string app, Guid id)
         {
-            var entity = await ruleEventsRepository.FindAsync(id);
+            var ruleEvent = await ruleEventsRepository.FindAsync(id);
 
-            if (entity == null)
+            if (ruleEvent == null)
             {
                 return NotFound();
             }

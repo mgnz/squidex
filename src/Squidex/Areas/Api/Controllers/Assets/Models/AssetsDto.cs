@@ -17,27 +17,17 @@ namespace Squidex.Areas.Api.Controllers.Assets.Models
     public sealed class AssetsDto : Resource
     {
         /// <summary>
+        /// The total number of assets.
+        /// </summary>
+        public long Total { get; set; }
+
+        /// <summary>
         /// The assets.
         /// </summary>
         [Required]
         public AssetDto[] Items { get; set; }
 
-        /// <summary>
-        /// The total number of assets.
-        /// </summary>
-        public long Total { get; set; }
-
-        public string ToEtag()
-        {
-            return Items.ToManyEtag(Total);
-        }
-
-        public string ToSurrogateKeys()
-        {
-            return Items.ToSurrogateKeys();
-        }
-
-        public static AssetsDto FromAssets(IResultList<IAssetEntity> assets, ApiController controller, string app)
+        public static AssetsDto FromAssets(IResultList<IEnrichedAssetEntity> assets, ApiController controller, string app)
         {
             var response = new AssetsDto
             {
@@ -59,7 +49,7 @@ namespace Squidex.Areas.Api.Controllers.Assets.Models
                 response.AddPostLink("create", controller.Url<AssetsController>(x => nameof(x.PostAsset), values));
             }
 
-            response.AddDeleteLink("tags", controller.Url<AssetsController>(x => nameof(x.GetTags), values));
+            response.AddGetLink("tags", controller.Url<AssetsController>(x => nameof(x.GetTags), values));
 
             return response;
         }

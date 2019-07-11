@@ -72,23 +72,23 @@ export class RolesService {
         const url = this.apiUrl.buildUrl(`api/apps/${appName}/roles`);
 
         return HTTP.getVersioned(this.http, url).pipe(
-                mapVersioned(({ body }) => {
-                    return parseRoles(body);
-                }),
-                pretifyError('Failed to load roles. Please reload.'));
+            mapVersioned(({ body }) => {
+                return parseRoles(body);
+            }),
+            pretifyError('Failed to load roles. Please reload.'));
     }
 
     public postRole(appName: string, dto: CreateRoleDto, version: Version): Observable<RolesDto> {
         const url = this.apiUrl.buildUrl(`api/apps/${appName}/roles`);
 
         return HTTP.postVersioned(this.http, url, dto, version).pipe(
-                mapVersioned(({ body }) => {
-                    return parseRoles(body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Role', 'Created', appName);
-                }),
-                pretifyError('Failed to add role. Please reload.'));
+            mapVersioned(({ body }) => {
+                return parseRoles(body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Role', 'Created', appName);
+            }),
+            pretifyError('Failed to add role. Please reload.'));
     }
 
     public putRole(appName: string, resource: Resource, dto: UpdateRoleDto, version: Version): Observable<RolesDto> {
@@ -97,13 +97,13 @@ export class RolesService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.requestVersioned(this.http, link.method, url, version, dto).pipe(
-                mapVersioned(({ body }) => {
-                    return parseRoles(body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Role', 'Updated', appName);
-                }),
-                pretifyError('Failed to revoke role. Please reload.'));
+            mapVersioned(({ body }) => {
+                return parseRoles(body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Role', 'Updated', appName);
+            }),
+            pretifyError('Failed to revoke role. Please reload.'));
     }
 
     public deleteRole(appName: string, resource: Resource, version: Version): Observable<RolesDto> {
@@ -112,27 +112,27 @@ export class RolesService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.requestVersioned(this.http, link.method, url, version).pipe(
-                mapVersioned(({ body }) => {
-                    return parseRoles(body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Role', 'Deleted', appName);
-                }),
-                pretifyError('Failed to revoke role. Please reload.'));
+            mapVersioned(({ body }) => {
+                return parseRoles(body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Role', 'Deleted', appName);
+            }),
+            pretifyError('Failed to revoke role. Please reload.'));
     }
 
     public getPermissions(appName: string): Observable<string[]> {
         const url = this.apiUrl.buildUrl(`api/apps/${appName}/roles/permissions`);
 
         return this.http.get<string[]>(url).pipe(
-                pretifyError('Failed to load permissions. Please reload.'));
+            pretifyError('Failed to load permissions. Please reload.'));
     }
 }
 
 export function parseRoles(response: any) {
-    const items: any[] = response.items;
+    const raw: any[] = response.items;
 
-    const roles = items.map(item =>
+    const items = raw.map(item =>
         new RoleDto(item._links,
             item.name,
             item.numClients,
@@ -142,5 +142,5 @@ export function parseRoles(response: any) {
 
     const _links = response._links;
 
-    return { items: roles, _links, canCreate: hasAnyLink(_links, 'create') };
+    return { items, _links, canCreate: hasAnyLink(_links, 'create') };
 }

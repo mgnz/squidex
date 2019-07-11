@@ -5,10 +5,10 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using Newtonsoft.Json;
-using Squidex.Infrastructure;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
+using Squidex.Infrastructure;
 
 namespace Squidex.Web
 {
@@ -24,38 +24,38 @@ namespace Squidex.Web
             AddGetLink("self", href);
         }
 
-        public void AddGetLink(string rel, string href)
+        public void AddGetLink(string rel, string href, string metadata = null)
         {
-            AddLink(rel, "GET", href);
+            AddLink(rel, "GET", href, metadata);
         }
 
-        public void AddPatchLink(string rel, string href)
+        public void AddPatchLink(string rel, string href, string metadata = null)
         {
-            AddLink(rel, "PATCH", href);
+            AddLink(rel, "PATCH", href, metadata);
         }
 
-        public void AddPostLink(string rel, string href)
+        public void AddPostLink(string rel, string href, string metadata = null)
         {
-            AddLink(rel, "POST", href);
+            AddLink(rel, "POST", href, metadata);
         }
 
-        public void AddPutLink(string rel, string href)
+        public void AddPutLink(string rel, string href, string metadata = null)
         {
-            AddLink(rel, "PUT", href);
+            AddLink(rel, "PUT", href, metadata);
         }
 
-        public void AddDeleteLink(string rel, string href)
+        public void AddDeleteLink(string rel, string href, string metadata = null)
         {
-            AddLink(rel, "DELETE", href);
+            AddLink(rel, "DELETE", href, metadata);
         }
 
-        public void AddLink(string rel, string method, string href)
+        public void AddLink(string rel, string method, string href, string metadata = null)
         {
             Guard.NotNullOrEmpty(rel, nameof(rel));
             Guard.NotNullOrEmpty(href, nameof(href));
             Guard.NotNullOrEmpty(method, nameof(method));
 
-            Links[rel] = new ResourceLink { Href = href, Method = method };
+            Links[rel] = new ResourceLink { Href = href, Method = method, Metadata = metadata };
         }
     }
 }

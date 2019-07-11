@@ -7,12 +7,11 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { distinctUntilChanged, map, tap } from 'rxjs/operators';
+import { tap } from 'rxjs/operators';
 
 import {
     DialogService,
     ImmutableArray,
-    ResourceLinks,
     shareSubscribed,
     State
 } from '@app/framework';
@@ -30,9 +29,6 @@ interface Snapshot {
 
     // Indicates if the user can create new backups.
     canCreate?: boolean;
-
-    // The links.
-    _links?: ResourceLinks;
 }
 
 type BackupsList = ImmutableArray<BackupDto>;
@@ -40,20 +36,16 @@ type BackupsList = ImmutableArray<BackupDto>;
 @Injectable()
 export class BackupsState extends State<Snapshot> {
     public backups =
-        this.changes.pipe(map(x => x.backups),
-            distinctUntilChanged());
+        this.project(x => x.backups);
 
     public maxBackupsReached =
-        this.changes.pipe(map(x => x.backups.length >= 10),
-            distinctUntilChanged());
+        this.project(x => x.backups.length >= 10);
 
     public isLoaded =
-        this.changes.pipe(map(x => !!x.isLoaded),
-            distinctUntilChanged());
+        this.project(x => !!x.isLoaded);
 
     public canCreate =
-        this.changes.pipe(map(x => !!x.canCreate),
-            distinctUntilChanged());
+        this.project(x => !!x.canCreate);
 
     constructor(
         private readonly appsState: AppsState,
@@ -69,7 +61,7 @@ export class BackupsState extends State<Snapshot> {
         }
 
         return this.backupsService.getBackups(this.appName).pipe(
-            tap(({ items, _links, canCreate }) => {
+            tap(({ items, canCreate }) => {
                 if (isReload && !silent) {
                     this.dialogs.notifyInfo('Backups reloaded.');
                 }
@@ -77,7 +69,7 @@ export class BackupsState extends State<Snapshot> {
 
                 this.next(s => {
 
-                    return { ...s, backups, isLoaded: true, _links, canCreate };
+                    return { ...s, backups, isLoaded: true, canCreate };
                 });
             }),
             shareSubscribed(this.dialogs, { silent }));

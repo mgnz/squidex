@@ -7,10 +7,12 @@
 
 import { AbstractControl } from '@angular/forms';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { distinctUntilChanged, map } from 'rxjs/operators';
 
 import { ErrorDto } from './utils/error';
+
 import { ResourceLinks } from './utils/hateos';
+
 import { Types } from './utils/types';
 
 import { fullValue } from './angular/forms/forms-helper';
@@ -25,22 +27,30 @@ export class Form<T extends AbstractControl, V> {
     private readonly state = new State<FormState>({ submitted: false });
 
     public submitted =
-        this.state.changes.pipe(map(s => s.submitted));
+        this.state.project(s => s.submitted);
 
     public error =
-        this.state.changes.pipe(map(s => s.error));
+        this.state.project(s => s.error);
 
     constructor(
         public readonly form: T
     ) {
     }
 
-    protected disable() {
-        this.form.disable();
+    public setEnabled(isEnabled: boolean) {
+        if (isEnabled) {
+            this.enable();
+        } else {
+            this.disable();
+        }
     }
 
     protected enable() {
         this.form.enable();
+    }
+
+    protected disable() {
+        this.form.disable();
     }
 
     protected setValue(value?: V) {
@@ -163,6 +173,17 @@ export class State<T extends {}> {
 
     public get snapshot(): Readonly<T> {
         return this.state.value;
+    }
+
+    public project<R1>(project1: (value: T) => R1, compare?: (x: R1, y: R1) => boolean) {
+        return this.changes.pipe(
+            map(x => project1(x)), distinctUntilChanged(compare));
+    }
+
+    public project2<R1, R2>(project1: (value: T) => R1, project2: (value: R1) => R2, compare?: (x: R2, y: R2) => boolean) {
+        return this.changes.pipe(
+            map(x => project1(x)), distinctUntilChanged(),
+            map(x => project2(x)), distinctUntilChanged(compare));
     }
 
     constructor(state: Readonly<T>) {

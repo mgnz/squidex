@@ -7,7 +7,6 @@
 
 using Squidex.Infrastructure.EventSourcing;
 using Squidex.Infrastructure.Reflection;
-using Squidex.Infrastructure.Security;
 using Squidex.Shared;
 using Squidex.Web;
 
@@ -15,8 +14,6 @@ namespace Squidex.Areas.Api.Controllers.EventConsumers.Models
 {
     public sealed class EventConsumerDto : Resource
     {
-        private static readonly Permission EventsManagePermission = new Permission(Permissions.AdminEventsManage);
-
         public bool IsStopped { get; set; }
 
         public bool IsResetting { get; set; }
@@ -36,7 +33,7 @@ namespace Squidex.Areas.Api.Controllers.EventConsumers.Models
 
         private EventConsumerDto CreateLinks(ApiController controller)
         {
-            if (controller.HasPermission(EventsManagePermission))
+            if (controller.HasPermission(Permissions.AdminEventsManage))
             {
                 var values = new { name = Name };
 

@@ -6,9 +6,9 @@
 // ==========================================================================
 
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Squidex.Domain.Users;
-using Squidex.Infrastructure.Security;
 using Squidex.Shared;
 using Squidex.Web;
 
@@ -16,8 +16,6 @@ namespace Squidex.Areas.Api.Controllers.Users.Models
 {
     public sealed class UsersDto : Resource
     {
-        private static readonly Permission CreatePermissions = new Permission(Permissions.AdminUsersCreate);
-
         /// <summary>
         /// The total number of users.
         /// </summary>
@@ -26,6 +24,7 @@ namespace Squidex.Areas.Api.Controllers.Users.Models
         /// <summary>
         /// The users.
         /// </summary>
+        [Required]
         public UserDto[] Items { get; set; }
 
         public static UsersDto FromResults(IEnumerable<UserWithClaims> items, long total, ApiController controller)
@@ -43,7 +42,7 @@ namespace Squidex.Areas.Api.Controllers.Users.Models
         {
             AddSelfLink(controller.Url<UserManagementController>(c => nameof(c.GetUsers)));
 
-            if (controller.HasPermission(CreatePermissions))
+            if (controller.HasPermission(Permissions.AdminUsersCreate))
             {
                 AddPostLink("create", controller.Url<UserManagementController>(c => nameof(c.PostUser)));
             }

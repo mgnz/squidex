@@ -48,7 +48,12 @@ export class LanguageComponent implements OnChanges {
     }
 
     public ngOnChanges() {
-        this.resetForm();
+        this.isEditable = this.language.canUpdate;
+
+        this.editForm.load(this.language);
+        this.editForm.setEnabled(this.isEditable);
+
+        this.otherLanguage = this.fallbackLanguagesNew.at(0);
     }
 
     public toggleEditing() {
@@ -90,18 +95,6 @@ export class LanguageComponent implements OnChanges {
     public addFallbackLanguage() {
         this.fallbackLanguages = this.fallbackLanguages.push(this.otherLanguage);
         this.fallbackLanguagesNew = this.fallbackLanguagesNew.remove(this.otherLanguage);
-
-        this.otherLanguage = this.fallbackLanguagesNew.at(0);
-    }
-
-    private resetForm() {
-        this.isEditable = this.language.canUpdate;
-
-        this.editForm.load(this.language);
-
-        if (!this.isEditable) {
-            this.editForm.form.disable();
-        }
 
         this.otherLanguage = this.fallbackLanguagesNew.at(0);
     }

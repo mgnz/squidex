@@ -47,11 +47,11 @@ describe('ContentsService', () => {
 
         let contents: ContentsDto;
 
-        contentsService.getContents('my-app', 'my-schema', 17, 13, undefined, undefined, 'Archived').subscribe(result => {
+        contentsService.getContents('my-app', 'my-schema', 17, 13, undefined, undefined, ['Draft', 'Published']).subscribe(result => {
             contents = result;
         });
 
-        const req = httpMock.expectOne('http://service/p/api/content/my-app/my-schema?$top=17&$skip=13&status=Archived');
+        const req = httpMock.expectOne('http://service/p/api/content/my-app/my-schema?$top=17&$skip=13&status=Draft&status=Published');
 
         expect(req.request.method).toEqual('GET');
         expect(req.request.headers.get('If-Match')).toBeNull();
@@ -61,11 +61,14 @@ describe('ContentsService', () => {
             items: [
                 contentResponse(12),
                 contentResponse(13)
-            ]
+            ],
+            statuses: [{
+                status: 'Draft', color: 'Gray'
+            }]
         });
 
         expect(contents!).toEqual(
-            new ContentsDto(10, [
+            new ContentsDto([{ status: 'Draft', color: 'Gray' }], 10, [
                 createContent(12),
                 createContent(13)
             ]));
@@ -76,7 +79,7 @@ describe('ContentsService', () => {
 
         contentsService.getContents('my-app', 'my-schema', 17, 13, 'my-query').subscribe();
 
-        const req = httpMock.expectOne('http://service/p/api/content/my-app/my-schema?$search="my-query"&$top=17&$skip=13&status=PublishedDraft');
+        const req = httpMock.expectOne('http://service/p/api/content/my-app/my-schema?$search="my-query"&$top=17&$skip=13');
 
         expect(req.request.method).toEqual('GET');
         expect(req.request.headers.get('If-Match')).toBeNull();
@@ -89,7 +92,7 @@ describe('ContentsService', () => {
 
         contentsService.getContents('my-app', 'my-schema', 17, 13, undefined, ['id1', 'id2']).subscribe();
 
-        const req = httpMock.expectOne('http://service/p/api/content/my-app/my-schema?$top=17&$skip=13&ids=id1,id2&status=PublishedDraft');
+        const req = httpMock.expectOne('http://service/p/api/content/my-app/my-schema?$top=17&$skip=13&ids=id1,id2');
 
         expect(req.request.method).toEqual('GET');
         expect(req.request.headers.get('If-Match')).toBeNull();
@@ -102,7 +105,7 @@ describe('ContentsService', () => {
 
         contentsService.getContents('my-app', 'my-schema', 17, 13, '$filter=my-filter').subscribe();
 
-        const req = httpMock.expectOne('http://service/p/api/content/my-app/my-schema?$filter=my-filter&$top=17&$skip=13&status=PublishedDraft');
+        const req = httpMock.expectOne('http://service/p/api/content/my-app/my-schema?$filter=my-filter&$top=17&$skip=13');
 
         expect(req.request.method).toEqual('GET');
         expect(req.request.headers.get('If-Match')).toBeNull();
@@ -350,6 +353,7 @@ describe('ContentsService', () => {
         return {
             id: `id${id}`,
             status: `Status${id}`,
+            statusColor: 'black',
             created: `${id % 1000 + 2000}-12-12T10:10:00`,
             createdBy: `creator-${id}`,
             lastModified: `${id % 1000 + 2000}-11-11T10:10:00`,
@@ -378,6 +382,7 @@ export function createContent(id: number, suffix = '') {
     return new ContentDto(links,
         `id${id}`,
         `Status${id}${suffix}`,
+        'black',
         DateTime.parseISO_UTC(`${id % 1000 + 2000}-12-12T10:10:00`), `creator-${id}`,
         DateTime.parseISO_UTC(`${id % 1000 + 2000}-11-11T10:10:00`), `modifier-${id}`,
         new ScheduleDto('Draft', `Scheduler${id}`, DateTime.parseISO_UTC(`${id % 1000 + 2000}-11-11T10:10:00`)),

@@ -25,6 +25,7 @@ export class AppDto {
 
     public readonly canCreateSchema: boolean;
     public readonly canDelete: boolean;
+    public readonly canReadAssets: boolean;
     public readonly canReadBackups: boolean;
     public readonly canReadClients: boolean;
     public readonly canReadContributors: boolean;
@@ -34,6 +35,8 @@ export class AppDto {
     public readonly canReadRoles: boolean;
     public readonly canReadRules: boolean;
     public readonly canReadSchemas: boolean;
+    public readonly canReadWorkflows: boolean;
+    public readonly canUploadAssets: boolean;
 
     constructor(links: ResourceLinks,
         public readonly id: string,
@@ -50,6 +53,7 @@ export class AppDto {
 
         this.canCreateSchema = hasAnyLink(links, 'schemas/create');
         this.canDelete = hasAnyLink(links, 'delete');
+        this.canReadAssets = hasAnyLink(links, 'assets');
         this.canReadBackups = hasAnyLink(links, 'backups');
         this.canReadClients = hasAnyLink(links, 'clients');
         this.canReadContributors = hasAnyLink(links, 'contributors');
@@ -59,6 +63,8 @@ export class AppDto {
         this.canReadRoles = hasAnyLink(links, 'roles');
         this.canReadRules = hasAnyLink(links, 'rules');
         this.canReadSchemas = hasAnyLink(links, 'schemas');
+        this.canReadWorkflows = hasAnyLink(links, 'workflows');
+        this.canUploadAssets = hasAnyLink(links, 'assets/create');
     }
 }
 
@@ -80,25 +86,25 @@ export class AppsService {
         const url = this.apiUrl.buildUrl('/api/apps');
 
         return this.http.get<any[]>(url).pipe(
-                map(body => {
-                    const apps = body.map(item => parseApp(item));
+            map(body => {
+                const apps = body.map(item => parseApp(item));
 
-                    return apps;
-                }),
-                pretifyError('Failed to load apps. Please reload.'));
+                return apps;
+            }),
+            pretifyError('Failed to load apps. Please reload.'));
     }
 
     public postApp(dto: CreateAppDto): Observable<AppDto> {
         const url = this.apiUrl.buildUrl('api/apps');
 
         return this.http.post(url, dto).pipe(
-                map(body => {
-                    return parseApp(body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('App', 'Created', dto.name);
-                }),
-                pretifyError('Failed to create app. Please reload.'));
+            map(body => {
+                return parseApp(body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('App', 'Created', dto.name);
+            }),
+            pretifyError('Failed to create app. Please reload.'));
     }
 
     public deleteApp(resource: Resource): Observable<any> {
@@ -107,10 +113,10 @@ export class AppsService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return this.http.request(link.method, url).pipe(
-                tap(() => {
-                    this.analytics.trackEvent('App', 'Archived');
-                }),
-                pretifyError('Failed to archive app. Please reload.'));
+            tap(() => {
+                this.analytics.trackEvent('App', 'Archived');
+            }),
+            pretifyError('Failed to archive app. Please reload.'));
     }
 }
 

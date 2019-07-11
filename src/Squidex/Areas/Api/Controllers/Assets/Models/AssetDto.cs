@@ -18,7 +18,7 @@ using Squidex.Web;
 
 namespace Squidex.Areas.Api.Controllers.Assets.Models
 {
-    public sealed class AssetDto : Resource, IGenerateETag
+    public sealed class AssetDto : Resource
     {
         /// <summary>
         /// The id of the asset.
@@ -118,9 +118,11 @@ namespace Squidex.Areas.Api.Controllers.Assets.Models
         [JsonProperty("_meta")]
         public AssetMetadata Metadata { get; set; }
 
-        public static AssetDto FromAsset(IAssetEntity asset, ApiController controller, string app, bool isDuplicate = false)
+        public static AssetDto FromAsset(IEnrichedAssetEntity asset, ApiController controller, string app, bool isDuplicate = false)
         {
             var response = SimpleMapper.Map(asset, new AssetDto { FileType = asset.FileName.FileType() });
+
+            response.Tags = asset.TagNames;
 
             if (isDuplicate)
             {

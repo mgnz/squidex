@@ -59,7 +59,7 @@ export class ContentPageComponent extends ResourceOwner implements CanComponentD
     public language: AppLanguageDto;
     public languages: ImmutableArray<AppLanguageDto>;
 
-    @ViewChild('dueTimeSelector')
+    @ViewChild('dueTimeSelector', { static: false })
     public dueTimeSelector: DueTimeSelectorComponent;
 
     constructor(apiUrl: ApiUrlConfig, authService: AuthService,
@@ -149,7 +149,7 @@ export class ContentPageComponent extends ResourceOwner implements CanComponentD
                             this.contentForm.submitFailed(error);
                         });
                 } else {
-                    if (this.content && !this.content.canUpdate) {
+                    if (this.content && !this.content.canUpdateAny) {
                         return;
                     }
 
@@ -182,7 +182,8 @@ export class ContentPageComponent extends ResourceOwner implements CanComponentD
     }
 
     private loadContent(data: any) {
-        this.contentForm.loadContent(data, this.content && !this.content.canUpdate);
+        this.contentForm.loadContent(data);
+        this.contentForm.setEnabled(!this.content || this.content.canUpdateAny);
     }
 
     public discardChanges() {
@@ -219,13 +220,12 @@ export class ContentPageComponent extends ResourceOwner implements CanComponentD
                     if (compare) {
                         if (this.contentFormCompare === null) {
                             this.contentFormCompare = new EditContentForm(this.schema, this.languages);
-                            this.contentFormCompare.form.disable();
                         }
 
-                        const isArchive = this.content && this.content.status === 'Archived';
+                        this.contentFormCompare.loadContent(dto.payload);
+                        this.contentFormCompare.setEnabled(false);
 
-                        this.contentFormCompare.loadContent(dto.payload, true);
-                        this.contentForm.loadContent(this.content.dataDraft, isArchive);
+                        this.loadContent(this.content.dataDraft);
                     } else {
                         if (this.contentFormCompare) {
                             this.contentFormCompare = null;

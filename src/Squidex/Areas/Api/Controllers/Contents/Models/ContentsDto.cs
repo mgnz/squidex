@@ -5,11 +5,13 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
 using Squidex.Domain.Apps.Core.Contents;
 using Squidex.Domain.Apps.Entities;
 using Squidex.Domain.Apps.Entities.Contents;
+using Squidex.Domain.Apps.Entities.Schemas;
 using Squidex.Infrastructure;
 using Squidex.Shared;
 using Squidex.Web;
@@ -26,38 +28,34 @@ namespace Squidex.Areas.Api.Controllers.Contents.Models
         /// <summary>
         /// The content items.
         /// </summary>
+        [Required]
         public ContentDto[] Items { get; set; }
 
-        public string ToEtag()
-        {
-            return Items.ToManyEtag(Total);
-        }
+        /// <summary>
+        /// The possible statuses.
+        /// </summary>
+        [Required]
+        public StatusInfoDto[] Statuses { get; set; }
 
-        public string ToSurrogateKeys()
-        {
-            return Items.ToSurrogateKeys();
-        }
-
-        public static ContentsDto FromContents(IList<IContentEntity> contents, QueryContext context, ApiController controller, string app, string schema)
-        {
-            var result = new ContentsDto
-            {
-                Total = contents.Count,
-                Items = contents.Select(x => ContentDto.FromContent(x, context, controller, app, schema)).ToArray()
-            };
-
-            return result.CreateLinks(controller, app, schema);
-        }
-
-        public static ContentsDto FromContents(IResultList<IContentEntity> contents, QueryContext context, ApiController controller, string app, string schema)
+        public static async Task<ContentsDto> FromContentsAsync(IResultList<IEnrichedContentEntity> contents,
+            Context context, ApiController controller, ISchemaEntity schema, IContentWorkflow contentWorkflow)
         {
             var result = new ContentsDto
             {
                 Total = contents.Total,
-                Items = contents.Select(x => ContentDto.FromContent(x, context, controller, app, schema)).ToArray()
+                Items = contents.Select(x => ContentDto.FromContent(context, x, controller)).ToArray()
             };
 
-            return result.CreateLinks(controller, app, schema);
+            await result.AssignStatusesAsync(contentWorkflow, schema);
+
+            return result.CreateLinks(controller, schema.AppId.Name, schema.SchemaDef.Name);
+        }
+
+        private async Task AssignStatusesAsync(IContentWorkflow contentWorkflow, ISchemaEntity schema)
+        {
+            var allStatuses = await contentWorkflow.GetAllAsync(schema);
+
+            Statuses = allStatuses.Select(StatusInfoDto.FromStatusInfo).ToArray();
         }
 
         private ContentsDto CreateLinks(ApiController controller, string app, string schema)
@@ -72,10 +70,7 @@ namespace Squidex.Areas.Api.Controllers.Contents.Models
                 {
                     AddPostLink("create", controller.Url<ContentsController>(x => nameof(x.PostContent), values));
 
-                    if (controller.HasPermission(Helper.StatusPermission(app, schema, Status.Published)))
-                    {
-                        AddPostLink("create/publish", controller.Url<ContentsController>(x => nameof(x.PostContent), values) + "?publish=true");
-                    }
+                    AddPostLink("create/publish", controller.Url<ContentsController>(x => nameof(x.PostContent), values) + "?publish=true");
                 }
             }
 

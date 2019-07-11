@@ -34,7 +34,18 @@ export class ScheduleDto {
     }
 }
 
+export type StatusInfo = { status: string; color: string; };
+
 export class ContentsDto extends ResultSet<ContentDto> {
+    constructor(
+        public readonly statuses: StatusInfo[],
+        total: number,
+        items: ContentDto[],
+        links?: ResourceLinks
+    ) {
+        super(total, items, links);
+    }
+
     public get canCreate() {
         return hasAnyLink(this._links, 'create');
     }
@@ -47,17 +58,19 @@ export class ContentsDto extends ResultSet<ContentDto> {
 export class ContentDto {
     public readonly _links: ResourceLinks;
 
-    public readonly statusUpdates: string[];
+    public readonly statusUpdates: StatusInfo[];
 
     public readonly canDelete: boolean;
     public readonly canDraftDiscard: boolean;
     public readonly canDraftPropose: boolean;
     public readonly canDraftPublish: boolean;
     public readonly canUpdate: boolean;
+    public readonly canUpdateAny: boolean;
 
     constructor(links: ResourceLinks,
         public readonly id: string,
         public readonly status: string,
+        public readonly statusColor: string,
         public readonly created: DateTime,
         public readonly createdBy: string,
         public readonly lastModified: DateTime,
@@ -75,12 +88,11 @@ export class ContentDto {
         this.canDraftPropose = hasAnyLink(links, 'draft/propose');
         this.canDraftPublish = hasAnyLink(links, 'draft/publish');
         this.canUpdate = hasAnyLink(links, 'update');
+        this.canUpdateAny = this.canUpdate || this.canDraftPropose;
 
-        this.statusUpdates = Object.keys(links).filter(x => x.startsWith('status/')).map(x => x.substr(7));
+        this.statusUpdates = Object.keys(links).filter(x => x.startsWith('status/')).map(x => ({ status: x.substr(7), color: links[x].metadata! }));
     }
 }
-
-export type ContentQueryStatus = 'Archived' | 'PublishedOnly' | 'PublishedDraft';
 
 @Injectable()
 export class ContentsService {
@@ -91,7 +103,7 @@ export class ContentsService {
     ) {
     }
 
-    public getContents(appName: string, schemaName: string, take: number, skip: number, query?: string, ids?: string[], status: ContentQueryStatus = 'PublishedDraft'): Observable<ContentsDto> {
+    public getContents(appName: string, schemaName: string, take: number, skip: number, query?: string, ids?: string[], status?: string[]): Observable<ContentsDto> {
         const queryParts: string[] = [];
 
         if (query && query.length > 0) {
@@ -117,53 +129,55 @@ export class ContentsService {
         }
 
         if (status) {
-            queryParts.push(`status=${status}`);
+            for (let s of status) {
+                queryParts.push(`status=${s}`);
+            }
         }
 
         const fullQuery = queryParts.join('&');
 
         const url = this.apiUrl.buildUrl(`/api/content/${appName}/${schemaName}?${fullQuery}`);
 
-        return this.http.get<{ total: number, items: [] } & Resource>(url).pipe(
-                map(({ total, items, _links }) => {
-                    const contents = items.map(x => parseContent(x));
+        return this.http.get<{ total: number, items: [], statuses: StatusInfo[] } & Resource>(url).pipe(
+            map(({ total, items, statuses, _links }) => {
+                const contents = items.map(x => parseContent(x));
 
-                    return new ContentsDto(total, contents, _links);
-                }),
-                pretifyError('Failed to load contents. Please reload.'));
+                return new ContentsDto(statuses, total, contents, _links);
+            }),
+            pretifyError('Failed to load contents. Please reload.'));
     }
 
     public getContent(appName: string, schemaName: string, id: string): Observable<ContentDto> {
         const url = this.apiUrl.buildUrl(`/api/content/${appName}/${schemaName}/${id}`);
 
         return HTTP.getVersioned(this.http, url).pipe(
-                map(({ payload }) => {
-                    return parseContent(payload.body);
-                }),
-                pretifyError('Failed to load content. Please reload.'));
+            map(({ payload }) => {
+                return parseContent(payload.body);
+            }),
+            pretifyError('Failed to load content. Please reload.'));
     }
 
     public getVersionData(appName: string, schemaName: string, id: string, version: Version): Observable<Versioned<any>> {
         const url = this.apiUrl.buildUrl(`/api/content/${appName}/${schemaName}/${id}/${version.value}`);
 
         return HTTP.getVersioned(this.http, url).pipe(
-                mapVersioned(({ body }) => {
-                    return body;
-                }),
-                pretifyError('Failed to load data. Please reload.'));
+            mapVersioned(({ body }) => {
+                return body;
+            }),
+            pretifyError('Failed to load data. Please reload.'));
     }
 
     public postContent(appName: string, schemaName: string, dto: any, publish: boolean): Observable<ContentDto> {
         const url = this.apiUrl.buildUrl(`/api/content/${appName}/${schemaName}?publish=${publish}`);
 
         return HTTP.postVersioned(this.http, url, dto).pipe(
-                map(({ payload }) => {
-                    return parseContent(payload.body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Content', 'Created', appName);
-                }),
-                pretifyError('Failed to create content. Please reload.'));
+            map(({ payload }) => {
+                return parseContent(payload.body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Content', 'Created', appName);
+            }),
+            pretifyError('Failed to create content. Please reload.'));
     }
 
     public putContent(appName: string, resource: Resource, dto: any, version: Version): Observable<ContentDto> {
@@ -172,13 +186,13 @@ export class ContentsService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.putVersioned(this.http, url, dto, version).pipe(
-                map(({ payload }) => {
-                    return parseContent(payload.body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Content', 'Updated', appName);
-                }),
-                pretifyError('Failed to update content. Please reload.'));
+            map(({ payload }) => {
+                return parseContent(payload.body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Content', 'Updated', appName);
+            }),
+            pretifyError('Failed to update content. Please reload.'));
     }
 
     public patchContent(appName: string, resource: Resource, dto: any, version: Version): Observable<ContentDto> {
@@ -187,13 +201,13 @@ export class ContentsService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.requestVersioned(this.http, link.method, url, version, dto).pipe(
-                map(({ payload }) => {
-                    return parseContent(payload.body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Content', 'Updated', appName);
-                }),
-                pretifyError('Failed to update content. Please reload.'));
+            map(({ payload }) => {
+                return parseContent(payload.body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Content', 'Updated', appName);
+            }),
+            pretifyError('Failed to update content. Please reload.'));
     }
 
     public discardDraft(appName: string, resource: Resource, version: Version): Observable<ContentDto> {
@@ -202,13 +216,13 @@ export class ContentsService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.requestVersioned(this.http, link.method, url, version, {}).pipe(
-                map(({ payload }) => {
-                    return parseContent(payload.body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Content', 'Discarded', appName);
-                }),
-                pretifyError('Failed to discard draft. Please reload.'));
+            map(({ payload }) => {
+                return parseContent(payload.body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Content', 'Discarded', appName);
+            }),
+            pretifyError('Failed to discard draft. Please reload.'));
     }
 
     public proposeDraft(appName: string, resource: Resource, dto: any, version: Version): Observable<ContentDto> {
@@ -217,13 +231,13 @@ export class ContentsService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.putVersioned(this.http, url, dto, version).pipe(
-                map(({ payload }) => {
-                    return parseContent(payload.body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Content', 'Updated', appName);
-                }),
-                pretifyError('Failed to propose draft. Please reload.'));
+            map(({ payload }) => {
+                return parseContent(payload.body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Content', 'Updated', appName);
+            }),
+            pretifyError('Failed to propose draft. Please reload.'));
     }
 
     public publishDraft(appName: string, resource: Resource, dueTime: string | null, version: Version): Observable<ContentDto> {
@@ -232,13 +246,13 @@ export class ContentsService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.requestVersioned(this.http, link.method, url, version, { status: 'Published', dueTime }).pipe(
-                map(({ payload }) => {
-                    return parseContent(payload.body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Content', 'Discarded', appName);
-                }),
-                pretifyError('Failed to publish draft. Please reload.'));
+            map(({ payload }) => {
+                return parseContent(payload.body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Content', 'Discarded', appName);
+            }),
+            pretifyError('Failed to publish draft. Please reload.'));
     }
 
     public putStatus(appName: string, resource: Resource, status: string, dueTime: string | null, version: Version): Observable<ContentDto> {
@@ -247,13 +261,13 @@ export class ContentsService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.requestVersioned(this.http, link.method, url, version, { status, dueTime }).pipe(
-                map(({ payload }) => {
-                    return parseContent(payload.body);
-                }),
-                tap(() => {
-                    this.analytics.trackEvent('Content', 'Archived', appName);
-                }),
-                pretifyError(`Failed to ${status} content. Please reload.`));
+            map(({ payload }) => {
+                return parseContent(payload.body);
+            }),
+            tap(() => {
+                this.analytics.trackEvent('Content', 'Archived', appName);
+            }),
+            pretifyError(`Failed to ${status} content. Please reload.`));
     }
 
     public deleteContent(appName: string, resource: Resource, version: Version): Observable<Versioned<any>> {
@@ -262,10 +276,10 @@ export class ContentsService {
         const url = this.apiUrl.buildUrl(link.href);
 
         return HTTP.requestVersioned(this.http, link.method, url, version).pipe(
-                tap(() => {
-                    this.analytics.trackEvent('Content', 'Deleted', appName);
-                }),
-                pretifyError('Failed to delete content. Please reload.'));
+            tap(() => {
+                this.analytics.trackEvent('Content', 'Deleted', appName);
+            }),
+            pretifyError('Failed to delete content. Please reload.'));
     }
 }
 
@@ -273,6 +287,7 @@ function parseContent(response: any) {
     return new ContentDto(response._links,
         response.id,
         response.status,
+        response.statusColor,
         DateTime.parseISO_UTC(response.created), response.createdBy,
         DateTime.parseISO_UTC(response.lastModified), response.lastModifiedBy,
         response.scheduleJob

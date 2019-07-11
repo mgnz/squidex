@@ -5,8 +5,10 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using Microsoft.AspNetCore.Mvc;
 using System;
+using Microsoft.AspNetCore.Mvc;
+
+#pragma warning disable RECS0108 // Warns about static fields in generic types
 
 namespace Squidex.Web
 {
@@ -22,7 +24,7 @@ namespace Squidex.Web
 
                 var name = typeof(T).Name;
 
-                if (name.EndsWith(suffix))
+                if (name.EndsWith(suffix, StringComparison.Ordinal))
                 {
                     name = name.Substring(0, name.Length - suffix.Length);
                 }
@@ -38,7 +40,7 @@ namespace Squidex.Web
 
         public static string Url<T>(this Controller controller, Func<T, string> action, object values = null) where T : Controller
         {
-            return controller.Url.Url<T>(action, values);
+            return controller.Url.Url(action, values);
         }
     }
 }

@@ -25,7 +25,7 @@ using AllPermissions = Squidex.Shared.Permissions;
 
 namespace Squidex.Areas.Api.Controllers.Apps.Models
 {
-    public sealed class AppDto : Resource, IGenerateETag
+    public sealed class AppDto : Resource
     {
         /// <summary>
         /// The name of the app.
@@ -177,9 +177,19 @@ namespace Squidex.Areas.Api.Controllers.Apps.Models
                 AddGetLink("schemas", controller.Url<SchemasController>(x => nameof(x.GetSchemas), values));
             }
 
+            if (controller.HasPermission(AllPermissions.AppWorkflowsRead, Name, permissions: permissions))
+            {
+                AddGetLink("workflows", controller.Url<AppWorkflowsController>(x => nameof(x.GetWorkflows), values));
+            }
+
             if (controller.HasPermission(AllPermissions.AppSchemasCreate, Name, permissions: permissions))
             {
                 AddPostLink("schemas/create", controller.Url<SchemasController>(x => nameof(x.PostSchema), values));
+            }
+
+            if (controller.HasPermission(AllPermissions.AppAssetsCreate, Name, permissions: permissions))
+            {
+                AddPostLink("assets/create", controller.Url<SchemasController>(x => nameof(x.PostSchema), values));
             }
 
             return this;

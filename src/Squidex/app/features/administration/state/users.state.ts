@@ -7,7 +7,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { catchError, distinctUntilChanged, map, tap } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 
 import '@app/framework/utils/rxjs-extensions';
 
@@ -15,7 +15,6 @@ import {
     DialogService,
     ImmutableArray,
     Pager,
-    ResourceLinks,
     shareSubscribed,
     State
 } from '@app/shared';
@@ -45,9 +44,6 @@ interface Snapshot {
 
     // Indicates if the user can create a user.
     canCreate?: boolean;
-
-    // The resource links.
-    _links?: ResourceLinks;
 }
 
 export type UsersList = ImmutableArray<UserDto>;
@@ -56,24 +52,19 @@ export type UsersResult = { total: number, users: UsersList };
 @Injectable()
 export class UsersState extends State<Snapshot> {
     public users =
-        this.changes.pipe(map(x => x.users),
-            distinctUntilChanged());
+        this.project(x => x.users);
 
     public usersPager =
-        this.changes.pipe(map(x => x.usersPager),
-            distinctUntilChanged());
+        this.project(x => x.usersPager);
 
     public selectedUser =
-        this.changes.pipe(map(x => x.selectedUser),
-            distinctUntilChanged());
+        this.project(x => x.selectedUser);
 
     public isLoaded =
-        this.changes.pipe(map(x => !!x.isLoaded),
-            distinctUntilChanged());
+        this.project(x => !!x.isLoaded);
 
     public canCreate =
-        this.changes.pipe(map(x => !!x.canCreate),
-            distinctUntilChanged());
+        this.project(x => !!x.canCreate);
 
     constructor(
         private readonly dialogs: DialogService,
@@ -119,7 +110,7 @@ export class UsersState extends State<Snapshot> {
                 this.snapshot.usersPager.pageSize,
                 this.snapshot.usersPager.skip,
                 this.snapshot.usersQuery).pipe(
-            tap(({ total, items, _links, canCreate }) => {
+            tap(({ total, items, canCreate }) => {
                 if (isReload) {
                     this.dialogs.notifyInfo('Users reloaded.');
                 }
@@ -134,7 +125,13 @@ export class UsersState extends State<Snapshot> {
                         selectedUser = users.find(x => x.id === selectedUser!.id) || selectedUser;
                     }
 
-                    return { ...s, users, usersPager, selectedUser, isLoaded: true, _links };
+                    return { ...s,
+                        canCreate,
+                        isLoaded: true,
+                        selectedUser,
+                        users,
+                        usersPager
+                    };
                 });
             }),
             shareSubscribed(this.dialogs));

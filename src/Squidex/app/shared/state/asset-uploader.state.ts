@@ -7,7 +7,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import { distinctUntilChanged, map, publishReplay, refCount, takeUntil } from 'rxjs/operators';
+import { map, publishReplay, refCount, takeUntil } from 'rxjs/operators';
 
 import {
     DialogService,
@@ -43,7 +43,7 @@ interface Snapshot {
     uploads: UploadList;
 }
 
-export class UploadCanceled { }
+export class UploadCanceled {}
 
 type UploadList = ImmutableArray<Upload>;
 type UploadResult = AssetDto | number;
@@ -51,8 +51,7 @@ type UploadResult = AssetDto | number;
 @Injectable()
 export class AssetUploaderState extends State<Snapshot> {
     public uploads =
-        this.changes.pipe(map(x => x.uploads),
-            distinctUntilChanged());
+        this.project(x => x.uploads);
 
     constructor(
         private readonly appsState: AppsState,
@@ -76,7 +75,7 @@ export class AssetUploaderState extends State<Snapshot> {
         const stream = this.assetsService.uploadFile(this.appName, file);
 
         return this.upload(stream, MathHelper.guid(), file, asset  => {
-            if (asset._meta && asset._meta['isDuplicate'] === 'true') {
+            if (asset.isDuplicate) {
                 this.dialogs.notifyError('Asset has already been uploaded.');
             } else if (target) {
                 target.add(asset);

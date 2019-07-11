@@ -11,9 +11,7 @@ import { onErrorResumeNext, switchMap, tap } from 'rxjs/operators';
 import {
     AppLanguageDto,
     AppsState,
-    CONTENT_STATUSES,
     ContentDto,
-    ContentQueryStatus,
     ContentsState,
     FilterState,
     ImmutableArray,
@@ -47,8 +45,6 @@ export class ContentsPageComponent extends ResourceOwner implements OnInit {
 
     public nextStatuses: string[] = [];
 
-    public statuses = CONTENT_STATUSES;
-
     public language: AppLanguageDto;
     public languages: ImmutableArray<AppLanguageDto>;
 
@@ -56,7 +52,7 @@ export class ContentsPageComponent extends ResourceOwner implements OnInit {
 
     public isAllSelected = false;
 
-    @ViewChild('dueTimeSelector')
+    @ViewChild('dueTimeSelector', { static: false })
     public dueTimeSelector: DueTimeSelectorComponent;
 
     constructor(
@@ -144,10 +140,6 @@ export class ContentsPageComponent extends ResourceOwner implements OnInit {
             .subscribe();
     }
 
-    public filterStatus(status: ContentQueryStatus) {
-        this.contentsState.filterStatus(status);
-    }
-
     public goPrev() {
         this.contentsState.goPrev();
     }
@@ -215,8 +207,8 @@ export class ContentsPageComponent extends ResourceOwner implements OnInit {
         const allActions = {};
 
         for (let content of this.contentsState.snapshot.contents.values) {
-            for (let status of content.statusUpdates) {
-                allActions[status] = true;
+            for (let info of content.statusUpdates) {
+                allActions[info.status] = info.color;
             }
         }
 

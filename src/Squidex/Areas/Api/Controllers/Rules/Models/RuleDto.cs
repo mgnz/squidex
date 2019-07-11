@@ -19,7 +19,7 @@ using Squidex.Web;
 
 namespace Squidex.Areas.Api.Controllers.Rules.Models
 {
-    public sealed class RuleDto : Resource, IGenerateETag
+    public sealed class RuleDto : Resource
     {
         /// <summary>
         /// The id of the rule.
@@ -109,7 +109,7 @@ namespace Squidex.Areas.Api.Controllers.Rules.Models
 
             if (controller.HasPermission(Permissions.AppRulesDelete))
             {
-                AddPutLink("delete", controller.Url<RulesController>(x => nameof(x.DeleteRule), values));
+                AddDeleteLink("delete", controller.Url<RulesController>(x => nameof(x.DeleteRule), values));
             }
 
             return this;
