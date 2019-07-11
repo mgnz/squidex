@@ -48,16 +48,16 @@ steps:
 #     versionSpec: 8.x
 #     checkLatest: true
 
-- template: templates/save-appconfig.yml 
+- template: ./templates/save-appconfig.yml 
   parameters:
-    appSettings.urls.baseUrl: '$(appSettings.playpen.urls.baseUrl)'
-    env: '$(env.playpen)'
-    appSettings.azureBlob.connectionString: '$(appSettings.playpen.azureBlob.connectionString)'
-    appSettings.eventStore.mongoDb.configuration: '$(appSettings.playpen.eventStore.mongoDb.configuration)'
-    appSettings.store.mongoDb.configuration: '$(appSettings.playpen.store.mongoDb.configuration)'
-    appSettings.identity.adminEmail: '$(appSettings.playpen.identity.adminEmail)'
-    appSettings.identity.adminPassword: '$(appSettings.playpen.identity.adminPassword)'
-    Build.SourcesDirectory: '$(Build.SourcesDirector)'
+    appSettings.urls.baseUrl: $(appSettings.playpen.urls.baseUrl)
+    env: $(env.playpen)
+    appSettings.azureBlob.connectionString: $(appSettings.playpen.azureBlob.connectionString)
+    appSettings.eventStore.mongoDb.configuration: $(appSettings.playpen.eventStore.mongoDb.configuration)
+    appSettings.store.mongoDb.configuration: $(appSettings.playpen.store.mongoDb.configuration)
+    appSettings.identity.adminEmail: $(appSettings.playpen.identity.adminEmail)
+    appSettings.identity.adminPassword: $(appSettings.playpen.identity.adminPassword)
+    Build.SourcesDirectory: $(Build.SourcesDirector)
 
 
 # - powershell: |
