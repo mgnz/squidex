@@ -1,18 +1,18 @@
 parameters:
-  appSettings.urls.baseUrl: ''
+  appSettings_urls_baseUrl: ''
   env: ''
-  appSettings.azureBlob.connectionString: ''
-  appSettings.eventStore.mongoDb.configuration: ''
-  appSettings.store.mongoDb.configuration: ''
-  appSettings.identity.adminEmail: ''
-  appSettings.identity.AdminPassword: ''
-  Build.SourcesDirectory: ''
+  appSettings_azureBlob_connectionString: ''
+  appSettings_eventStore_mongoDb_configuration: ''
+  appSettings_store_mongoDb_configuration: ''
+  appSettings_identity_adminEmail: ''
+  appSettings_identity_AdminPassword: ''
+  Build_SourcesDirectory: ''
 
 steps:
 - powershell: |
    $config = "{
      ""urls"": {
-       ""baseUrl"": ""${{ parameters.appSettings.urls.baseUrl }}""
+       ""baseUrl"": ""${{ parameters.appSettings_urls_baseUrl }}""
      },
    
      ""assetStore"": {
@@ -21,19 +21,19 @@ steps:
    
      ""azureBlob"": {
        ""containerName"": ""${{ parameters.env }}-assetstore"",
-       ""connectionString"": ""${{ parameters.appSettings.azureBlob.connectionString }}""
+       ""connectionString"": ""${{ parameters.appSettings_azureBlob_connectionString }}""
      },
    
      ""eventStore"": {
        ""mongoDb"": {
-         ""configuration"": ""${{ parameters.appSettings.eventStore.mongoDb.configuration }}"",
+         ""configuration"": ""${{ parameters.appSettings_eventStore_mongoDb_configuration }}"",
          ""database"": ""${{ parameters.env }}_squidexeventdb""
        }
      },
    
      ""store"": {
        ""mongoDb"": {
-         ""configuration"": ""${{ parameters.appSettings.store.mongoDb.configuration }}"",
+         ""configuration"": ""${{ parameters.appSettings_store_mongoDb_configuration }}"",
          ""contentDatabase"": ""${{ parameters.env }}_squidexstorcontentdb"",
          ""database"": ""${{ parameters.env }}_squidexstoredb""
        }
@@ -46,11 +46,11 @@ steps:
        ""githubSecret"": """",
        ""microsoftClient"": """",
        ""microsoftSecret"": """",
-       ""adminEmail"": ""${{ parameters.appSettings.identity.adminEmail }}"",
-       ""AdminPassword"": ""${{ parameters.appSettings.identity.AdminPassword }}""
+       ""adminEmail"": ""${{ parameters.appSettings_identity_adminEmail }}"",
+       ""AdminPassword"": ""${{ parameters.appSettings_identity_AdminPassword }}""
      }
    }
    "
    write-host $config
-   set-content -value $config -path "${{ parameters.Build.SourcesDirectory }}/src/Squidex/appsettings.${{ parameters.env }}.json"
+   set-content -value $config -path "${{ parameters.Build_SourcesDirectory }}/src/Squidex/appsettings_${{ parameters.env }}_json"
   displayName: 'Save Appconfig'

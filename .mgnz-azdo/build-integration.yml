@@ -32,7 +32,7 @@ pool:
   # $(appSettings.prod.azureBlob.connectionString)
   # $(appSettings.prod.eventStore.mongoDb.configuration)
   # $(appSettings.prod.store.mongoDb.configuration)
-  # $(appSettings.prod.identity.adminEmail)
+  # $(appSettings.prod.identity.adminEmail) 
   # $(appSettings.prod.identity.adminPassword)
 
 
@@ -50,14 +50,14 @@ steps:
 
 - template: ./templates/save-appconfig.yml 
   parameters:
-    appSettings.urls.baseUrl: $(appSettings.playpen.urls.baseUrl)
+    appSettings_urls_baseUrl: $(appSettings.playpen.urls.baseUrl)
     env: $(env.playpen)
-    appSettings.azureBlob.connectionString: $(appSettings.playpen.azureBlob.connectionString)
-    appSettings.eventStore.mongoDb.configuration: $(appSettings.playpen.eventStore.mongoDb.configuration)
-    appSettings.store.mongoDb.configuration: $(appSettings.playpen.store.mongoDb.configuration)
-    appSettings.identity.adminEmail: $(appSettings.playpen.identity.adminEmail)
-    appSettings.identity.adminPassword: $(appSettings.playpen.identity.adminPassword)
-    Build.SourcesDirectory: $(Build.SourcesDirector)
+    appSettings_azureBlob_connectionString: $(appSettings.playpen.azureBlob.connectionString)
+    appSettings_eventStore_mongoDb_configuration: $(appSettings.playpen.eventStore.mongoDb.configuration)
+    appSettings_store_mongoDb_configuration: $(appSettings.playpen.store.mongoDb.configuration)
+    appSettings_identity_adminEmail: $(appSettings.playpen.identity.adminEmail)
+    appSettings_identity_adminPassword: $(appSettings.playpen.identity.adminPassword)
+    Build_SourcesDirectory: $(Build.SourcesDirector)
 
 
 # - powershell: |
