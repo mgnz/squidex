@@ -58,13 +58,11 @@ steps:
     appSettings_identity_adminEmail: $(appSettings.playpen.identity.adminEmail)
     appSettings_identity_adminPassword: $(appSettings.playpen.identity.adminPassword)
     build_sourcesDirectory: $(Build.SourcesDirectory)
-  displayName: 'Save Appsettings (playpen)'
 
 - template: ./templates/save-webconfig.yml 
   parameters:
     env: $(env.playpen)
     build_sourcesDirectory: $(Build.SourcesDirectory)
-  displayName: 'Save Webconfig transform (playpen)'
 
 
 # - powershell: |

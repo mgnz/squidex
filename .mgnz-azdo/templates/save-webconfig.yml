@@ -17,3 +17,4 @@ steps:
    "
    write-host $config
    set-content -value $config -path "${{ parameters.build_sourcesDirectory }}/src/Squidex/web.${{ parameters.env }}.config"
+  displayName: 'Save Webconfig transform ${{ parameters.env }}'

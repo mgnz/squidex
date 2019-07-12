@@ -53,4 +53,4 @@ steps:
    "
    write-host $config
    set-content -value $config -path "${{ parameters.build_sourcesDirectory }}/src/Squidex/appsettings_${{ parameters.env }}_json"
-  displayName: 'Save Appconfig'
+  displayName: 'Save Appsettings ${{ parameters.env }}'
