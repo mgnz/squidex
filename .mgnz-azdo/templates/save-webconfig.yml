@@ -1,0 +1,19 @@
+parameters:
+  env: ''
+  Build_sourcesDirectory: ''
+
+steps:
+- powershell: |
+   $config = "<?xml version=""1.0"" encoding=""utf-8""?>
+   <configuration xmlns:xdt=""http://schemas.microsoft.com/XML-Document-Transform"">
+     <system.webServer>
+       <aspNetCore>
+         <environmentVariables>
+           <environmentVariable xdt:Transform=""SetAttributes"" xdt:Locator=""Match(name)"" name=""ASPNETCORE_ENVIRONMENT"" value=""${{ parameters.env }}"" />
+         </environmentVariables>
+       </aspNetCore>
+     </system.webServer>
+   </configuration>
+   "
+   write-host $config
+   set-content -value $config -path "${{ parameters.build_sourcesDirectory }}/src/Squidex/web.${{ parameters.env }}.config"
