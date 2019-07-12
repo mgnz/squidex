@@ -64,91 +64,60 @@ steps:
     env: $(env.playpen)
     build_sourcesDirectory: $(Build.SourcesDirectory)
 
+- template: ./templates/save-appconfig.yml 
+  parameters:
+    appSettings_urls_baseUrl: $(appSettings.preprod.urls.baseUrl)
+    env: $(env.preprod)
+    appSettings_azureBlob_connectionString: $(appSettings.preprod.azureBlob.connectionString)
+    appSettings_eventStore_mongoDb_configuration: $(appSettings.preprod.eventStore.mongoDb.configuration)
+    appSettings_store_mongoDb_configuration: $(appSettings.preprod.store.mongoDb.configuration)
+    appSettings_identity_adminEmail: $(appSettings.preprod.identity.adminEmail)
+    appSettings_identity_adminPassword: $(appSettings.preprod.identity.adminPassword)
+    build_sourcesDirectory: $(Build.SourcesDirectory)
 
-# - powershell: |
-#    $config = "<?xml version=""1.0"" encoding=""utf-8""?>
-#    <configuration xmlns:xdt=""http://schemas.microsoft.com/XML-Document-Transform"">
-#      <system.webServer>
-#        <aspNetCore>
-#          <environmentVariables>
-#            <environmentVariable xdt:Transform=""SetAttributes"" xdt:Locator=""Match(name)"" name=""ASPNETCORE_ENVIRONMENT"" value=""$(env.playpen)"" />
-#          </environmentVariables>
-#        </aspNetCore>
-#      </system.webServer>
-#    </configuration>
-#    "
-#    write-host $config
-#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.$(env.playpen).config"
-#   displayName: 'Save Web Config (playpen)'
+- template: ./templates/save-webconfig.yml 
+  parameters:
+    env: $(env.preprod)
+    build_sourcesDirectory: $(Build.SourcesDirectory)
 
-# - powershell: |
-#    $config = "
-#    "
-#    write-host $config
-#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/appsettings.preprod.json"
-#   displayName: 'Save Settings (preprod)'
+- template: ./templates/save-appconfig.yml 
+  parameters:
+    appSettings_urls_baseUrl: $(appSettings.prod.urls.baseUrl)
+    env: $(env.prod)
+    appSettings_azureBlob_connectionString: $(appSettings.prod.azureBlob.connectionString)
+    appSettings_eventStore_mongoDb_configuration: $(appSettings.prod.eventStore.mongoDb.configuration)
+    appSettings_store_mongoDb_configuration: $(appSettings.prod.store.mongoDb.configuration)
+    appSettings_identity_adminEmail: $(appSettings.prod.identity.adminEmail)
+    appSettings_identity_adminPassword: $(appSettings.prod.identity.adminPassword)
+    build_sourcesDirectory: $(Build.SourcesDirectory)
 
-# - powershell: |
-#    $config = "<?xml version=""1.0"" encoding=""utf-8""?>
-#    <configuration xmlns:xdt=""http://schemas.microsoft.com/XML-Document-Transform"">
-#      <system.webServer>
-#        <aspNetCore>
-#          <environmentVariables>
-#            <environmentVariable xdt:Transform=""SetAttributes"" xdt:Locator=""Match(name)"" name=""ASPNETCORE_ENVIRONMENT"" value=""$(env.preprod)"" />
-#          </environmentVariables>
-#        </aspNetCore>
-#      </system.webServer>
-#    </configuration>
-#    "
-#    write-host $config
-#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.$(env.preprod).config"
-#   displayName: 'Save Web Config (preprod)'
+- template: ./templates/save-webconfig.yml 
+  parameters:
+    env: $(env.prod)
+    build_sourcesDirectory: $(Build.SourcesDirectory)
 
-# - powershell: |
-#    $config = "
-#    "
-#    write-host $config
-#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/appsettings.production.json"
-#   displayName: 'Save Settings (production)'
-
-# - powershell: |
-#    $config = "<?xml version=""1.0"" encoding=""utf-8""?>
-#    <configuration xmlns:xdt=""http://schemas.microsoft.com/XML-Document-Transform"">
-#      <system.webServer>
-#        <aspNetCore>
-#          <environmentVariables>
-#            <environmentVariable xdt:Transform=""SetAttributes"" xdt:Locator=""Match(name)"" name=""ASPNETCORE_ENVIRONMENT"" value=""$(env.prod)"" />
-#          </environmentVariables>
-#        </aspNetCore>
-#      </system.webServer>
-#    </configuration>
-#    "
-#    write-host $config
-#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.$(env.prod).config"
-#   displayName: 'Save Web Config (production)'
-
-# - powershell: |
-#    $config = "<?xml version=""1.0"" encoding=""utf-8""?>
-#    <configuration>
-#        <system.webServer>
-#            <modules>
-#                <remove name=""WebDAVModule"" />
-#            </modules>
-#            <handlers>
-#                <remove name=""WebDAV"" />
-#                <add name=""aspNetCore"" path=""*"" verb=""*"" modules=""AspNetCoreModule"" resourceType=""Unspecified"" />
-#            </handlers>
-#            <aspNetCore processPath=""dotnet"" arguments="".\Squidex.dll"" stdoutLogEnabled=""true"" stdoutLogFile=""..\..\logs\cms"" hostingModel=""OutOfProcess"">
-#                <environmentVariables>
-#                    <environmentVariable name=""ASPNETCORE_ENVIRONMENT"" value=""development"" />
-#                </environmentVariables>
-#            </aspNetCore>
-#        </system.webServer>
-#    </configuration>
-#    "
-#    write-host $config
-#    set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.config"
-#   displayName: 'Save Web Config (baseline)'
+- powershell: |
+   $config = "<?xml version=""1.0"" encoding=""utf-8""?>
+   <configuration>
+       <system.webServer>
+           <modules>
+               <remove name=""WebDAVModule"" />
+           </modules>
+           <handlers>
+               <remove name=""WebDAV"" />
+               <add name=""aspNetCore"" path=""*"" verb=""*"" modules=""AspNetCoreModule"" resourceType=""Unspecified"" />
+           </handlers>
+           <aspNetCore processPath=""dotnet"" arguments="".\Squidex.dll"" stdoutLogEnabled=""true"" stdoutLogFile=""..\..\logs\cms"" hostingModel=""OutOfProcess"">
+               <environmentVariables>
+                   <environmentVariable name=""ASPNETCORE_ENVIRONMENT"" value=""development"" />
+               </environmentVariables>
+           </aspNetCore>
+       </system.webServer>
+   </configuration>
+   "
+   write-host $config
+   set-content -value $config -path "$(Build.SourcesDirectory)/src/Squidex/web.config"
+  displayName: 'Save Web Config (baseline)'
 
 # - task: Npm@1
 #   displayName: 'npm install --global --production windows-build-tools'
