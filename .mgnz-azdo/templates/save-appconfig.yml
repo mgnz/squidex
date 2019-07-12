@@ -20,22 +20,22 @@ steps:
      },
    
      ""azureBlob"": {
-       ""containerName"": ""{{ parameters.env }}-assetstore"",
-       ""connectionString"": ""{{ parameters.appSettings.azureBlob.connectionString }}""
+       ""containerName"": ""${{ parameters.env }}-assetstore"",
+       ""connectionString"": ""${{ parameters.appSettings.azureBlob.connectionString }}""
      },
    
      ""eventStore"": {
        ""mongoDb"": {
-         ""configuration"": ""{{ parameters.appSettings.eventStore.mongoDb.configuration }}"",
-         ""database"": ""{{ parameters.env }}_squidexeventdb""
+         ""configuration"": ""${{ parameters.appSettings.eventStore.mongoDb.configuration }}"",
+         ""database"": ""${{ parameters.env }}_squidexeventdb""
        }
      },
    
      ""store"": {
        ""mongoDb"": {
-         ""configuration"": ""{{ parameters.appSettings.store.mongoDb.configuration }}"",
-         ""contentDatabase"": ""{{ parameters.env }}_squidexstorcontentdb"",
-         ""database"": ""{{ parameters.env }}_squidexstoredb""
+         ""configuration"": ""${{ parameters.appSettings.store.mongoDb.configuration }}"",
+         ""contentDatabase"": ""${{ parameters.env }}_squidexstorcontentdb"",
+         ""database"": ""${{ parameters.env }}_squidexstoredb""
        }
      },
    
@@ -46,11 +46,11 @@ steps:
        ""githubSecret"": """",
        ""microsoftClient"": """",
        ""microsoftSecret"": """",
-       ""adminEmail"": ""{{ parameters.appSettings.identity.adminEmail }}"",
-       ""AdminPassword"": ""{{ parameters.appSettings.identity.AdminPassword }}""
+       ""adminEmail"": ""${{ parameters.appSettings.identity.adminEmail }}"",
+       ""AdminPassword"": ""${{ parameters.appSettings.identity.AdminPassword }}""
      }
    }
    "
    write-host $config
-   set-content -value $config -path "{{ parameters.Build.SourcesDirectory }}/src/Squidex/appsettings.{{ parameters.env }}.json"
+   set-content -value $config -path "${{ parameters.Build.SourcesDirectory }}/src/Squidex/appsettings.${{ parameters.env }}.json"
   displayName: 'Save Appconfig'
