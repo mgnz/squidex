@@ -12,7 +12,7 @@ steps:
 - powershell: |
    $config = "{
      ""urls"": {
-       ""baseUrl"": ""${{ parameters.appSettings.playpen.urls.baseUrl }}""
+       ""baseUrl"": ""${{ parameters.appSettings.urls.baseUrl }}""
      },
    
      ""assetStore"": {
