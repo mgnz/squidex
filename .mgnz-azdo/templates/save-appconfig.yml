@@ -6,7 +6,7 @@ parameters:
   appSettings_store_mongoDb_configuration: ''
   appSettings_identity_adminEmail: ''
   appSettings_identity_AdminPassword: ''
-  Build_SourcesDirectory: ''
+  Build_sourcesDirectory: ''
 
 steps:
 - powershell: |
@@ -52,5 +52,5 @@ steps:
    }
    "
    write-host $config
-   set-content -value $config -path "${{ parameters.Build_SourcesDirectory }}/src/Squidex/appsettings_${{ parameters.env }}_json"
+   set-content -value $config -path "${{ parameters.build_sourcesDirectory }}/src/Squidex/appsettings_${{ parameters.env }}_json"
   displayName: 'Save Appconfig'

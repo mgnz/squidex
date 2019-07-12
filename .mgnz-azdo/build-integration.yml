@@ -57,7 +57,7 @@ steps:
     appSettings_store_mongoDb_configuration: $(appSettings.playpen.store.mongoDb.configuration)
     appSettings_identity_adminEmail: $(appSettings.playpen.identity.adminEmail)
     appSettings_identity_adminPassword: $(appSettings.playpen.identity.adminPassword)
-    Build_SourcesDirectory: $(Build.SourcesDirector)
+    build_sourcesDirectory: $(Build.SourcesDirectory)
 
 
 # - powershell: |
